@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:16-alpine
+    profiles:
+      - local-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: agilent_user
+      POSTGRES_PASSWORD: agilent_pass
+      POSTGRES_DB: agilent_billing
+    ports:
+      - "5432:5432"
+    volumes:
+      - agilent_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agilent_user -d agilent_billing"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set in the Codespace environment or an uncommitted .env file}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  agilent_pgdata:
