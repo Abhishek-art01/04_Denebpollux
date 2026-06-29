@@ -60,6 +60,35 @@ npm run dev
 Open http://localhost:5173. The Vite dev server proxies `/api/*` to the
 backend at `http://localhost:8000` (see `vite.config.js`).
 
+## Deploy: Netlify frontend + Render backend
+
+### Render backend
+
+Deploy `render.yaml` from this app directory, or create a Render Web Service
+manually with:
+
+- Root directory: `backend`
+- Build command: `pip install -r requirements.txt`
+- Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- Health check path: `/api/health`
+
+Set these Render environment variables:
+
+- `DATABASE_URL` = your Supabase/PostgreSQL connection string
+- `FRONTEND_ORIGIN` = your Netlify site origin, e.g. `https://your-site.netlify.app`
+
+### Netlify frontend
+
+Netlify reads `netlify.toml` and builds the Vite app from `frontend/`.
+
+Set this Netlify environment variable:
+
+- `VITE_API_BASE_URL` = your Render API origin plus `/api`, e.g.
+  `https://agilent-billing-api.onrender.com/api`
+
+After changing `VITE_API_BASE_URL`, trigger a new Netlify deploy because Vite
+injects environment variables at build time.
+
 ## Uploading data
 
 Every sheet **must include a `Month` column** (e.g. `May-2026`) filled in
