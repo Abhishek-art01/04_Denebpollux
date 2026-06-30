@@ -1,7 +1,8 @@
+import asyncio
 from typing import Annotated
 
 import httpx
-from fastapi import FastAPI, Header, HTTPException, Request, Response
+from fastapi import FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic_settings import BaseSettings
 
@@ -43,6 +44,7 @@ def parse_client_backends() -> dict[str, str]:
 
 
 CLIENT_BACKENDS = parse_client_backends()
+WAKE_RETRY_DELAYS_SECONDS = [0, 3, 6, 9, 12]
 HOP_BY_HOP_HEADERS = {
     "accept-encoding",
     "connection",
@@ -74,6 +76,26 @@ def response_headers(response: httpx.Response) -> dict[str, str]:
         for key, value in response.headers.items()
         if key.lower() not in HOP_BY_HOP_HEADERS
     }
+
+
+async def wake_backend(name: str, base_url: str) -> dict[str, str | int]:
+    health_url = f"{base_url.rstrip('/')}/api/health"
+    last_error = "not attempted"
+
+    async with httpx.AsyncClient(timeout=8, follow_redirects=False) as client:
+        for attempt, delay in enumerate(WAKE_RETRY_DELAYS_SECONDS, start=1):
+            if delay:
+                await asyncio.sleep(delay)
+            try:
+                response = await client.get(health_url)
+            except httpx.HTTPError as exc:
+                last_error = str(exc)
+                continue
+            if response.status_code == 200:
+                return {"name": name, "status": "awake", "attempts": attempt}
+            last_error = f"HTTP {response.status_code}"
+
+    return {"name": name, "status": "waking", "attempts": len(WAKE_RETRY_DELAYS_SECONDS), "error": last_error}
 
 
 async def verify_token(authorization: Annotated[str | None, Header()] = None) -> None:
@@ -110,6 +132,31 @@ async def proxy(request: Request, target_url: str, preserve_authorization: bool 
         headers=response_headers(upstream),
         media_type=upstream.headers.get("content-type"),
     )
+
+
+@app.get("/api/wake")
+async def wake_services(
+    target: str = Query("all", pattern="^(all|auth|client)$"),
+    client_id: str | None = None,
+):
+    checks = []
+    if target in {"all", "auth"}:
+        checks.append(wake_backend("auth", settings.auth_backend_url))
+
+    if target in {"all", "client"}:
+        if client_id:
+            backend_url = CLIENT_BACKENDS.get(client_id)
+            if not backend_url:
+                raise HTTPException(status_code=404, detail=f"Unknown client backend: {client_id}")
+            checks.append(wake_backend(client_id, backend_url))
+        elif target == "all":
+            checks.extend(
+                wake_backend(client_id, backend_url)
+                for client_id, backend_url in CLIENT_BACKENDS.items()
+            )
+
+    results = await asyncio.gather(*checks) if checks else []
+    return {"status": "ok", "services": results}
 
 
 @app.api_route("/api/auth/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])

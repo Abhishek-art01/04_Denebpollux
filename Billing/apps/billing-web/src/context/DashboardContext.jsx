@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { fetchMonths } from "../api/reports.js";
+import { wakeClient } from "../api/wake.js";
 import { useAuth } from "./AuthContext.jsx";
 import { getClientConfig } from "../config/clients.js";
 
@@ -18,6 +19,11 @@ export function DashboardProvider({ children }) {
     setMonthsLoading(true);
     setMonthsError("");
     try {
+      try {
+        await wakeClient(selectedClient);
+      } catch (wakeError) {
+        console.warn("Billing service wake request did not complete before refresh", wakeError);
+      }
       const result = await fetchMonths();
       setMonths(result);
       if (result.length > 0 && !selectedMonth) {
