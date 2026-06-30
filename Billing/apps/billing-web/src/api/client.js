@@ -1,5 +1,10 @@
 import axios from "axios";
-import { getStoredAuthToken, getStoredClientId } from "../utils/sessionStorage.js";
+import {
+  TOKEN_KEY,
+  USER_KEY,
+  getStoredAuthToken,
+  getStoredClientId,
+} from "../utils/sessionStorage.js";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
@@ -17,6 +22,20 @@ client.interceptors.request.use((config) => {
   }
   return config;
 });
+
+client.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      window.localStorage.removeItem(TOKEN_KEY);
+      window.localStorage.removeItem(USER_KEY);
+      if (window.location.pathname !== "/login") {
+        window.location.assign("/login");
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export function clientPath(path) {
   return `/clients/${getStoredClientId()}${path}`;
