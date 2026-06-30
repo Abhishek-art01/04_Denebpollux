@@ -19,7 +19,7 @@ const AGILENT_UPLOAD_LABELS = {
 export default function Navbar() {
   const { selectedClient } = useAuth();
   const clientConfig = getClientConfig(selectedClient);
-  const { months, refreshMonths } = useDashboard();
+  const { months, monthsLoading, refreshMonths } = useDashboard();
   const fileInputRef = useRef(null);
   const [pendingSheetKey, setPendingSheetKey] = useState("");
   const [uploadStatus, setUploadStatus] = useState("");
@@ -113,6 +113,18 @@ export default function Navbar() {
       </div>
 
       <div className="navbar-controls">
+        <button
+          className="icon-button"
+          type="button"
+          onClick={refreshMonths}
+          disabled={monthsLoading}
+          title={monthsLoading ? "Refreshing" : "Refresh billing data"}
+          aria-label={monthsLoading ? "Refreshing billing data" : "Refresh billing data"}
+        >
+          <span className="material-symbols-outlined" aria-hidden="true">
+            refresh
+          </span>
+        </button>
         <DashboardSelector />
         <MonthSelector />
       </div>

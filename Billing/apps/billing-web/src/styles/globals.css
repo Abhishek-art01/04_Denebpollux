@@ -419,6 +419,29 @@ button {
   cursor: pointer;
 }
 
+.icon-button {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: 1px solid rgba(183, 200, 225, 0.36);
+  border-radius: var(--radius-control);
+  background: var(--surface-1);
+  color: var(--ink-800);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: var(--surface-2);
+}
+
+.icon-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 /* ---------- Select / Dropdown ---------- */
 .select-control {
   display: flex;

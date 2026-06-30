@@ -29,7 +29,7 @@ export function DashboardProvider({ children }) {
       setMonths([]);
       setSelectedMonth("");
       setMonthsError(
-        "Unable to reach the billing API gateway. Check that VITE_API_BASE_URL points to the gateway /api URL."
+        "Unable to reach the billing server. It may still be waking up; use the refresh button in the header."
       );
       return [];
     } finally {

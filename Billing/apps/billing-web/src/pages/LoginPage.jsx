@@ -24,7 +24,7 @@ export default function LoginPage() {
       if (err.response?.status === 401) {
         setError("Invalid username or password.");
       } else {
-        setError("Billing API unavailable. Please try again in a minute.");
+        setError("Servers are still waking up. Please try again in a minute.");
       }
     } finally {
       setLoading(false);
@@ -62,7 +62,7 @@ export default function LoginPage() {
           </div>
           {error && <p className="form-error">{error}</p>}
           <button className="btn-primary" type="submit" disabled={loading}>
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? "Waking servers..." : "Sign in"}
           </button>
         </form>
       </section>
