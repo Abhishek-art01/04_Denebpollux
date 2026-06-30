@@ -99,11 +99,11 @@ TRIP_DATA_AIAA_SPEC = SheetSpec(
         "TAXABLE_AMOUNT": "taxable_amount",
     },
     numeric_fields=[
-        "staff", "bill_count", "use_zone_km", "claim", "pass_amount",
+        "staff", "bill_count", "claim", "pass_amount",
         "guard_cost", "toll_amount", "trip_cost", "taxable_amount", "total",
     ],
     date_fields=["date"],
-    required_fields=["cab_no"],
+    required_fields=["una", "cab_no"],
 )
 
 SUNDRIES_SPEC = SheetSpec(
