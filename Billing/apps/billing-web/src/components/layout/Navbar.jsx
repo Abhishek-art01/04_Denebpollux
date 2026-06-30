@@ -12,6 +12,7 @@ const AGILENT_UPLOAD_LABELS = {
   tripData: "Agilent Trip Data",
   backupCab: "Agilent Backup Cabs",
   maintenanceSecurity: "Agilent Maintainence Cabs",
+  spotRental: "Agilent Spot Rental",
   additionalCharges: "Agilent Addtional Charges",
 };
 
