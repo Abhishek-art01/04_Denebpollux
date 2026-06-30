@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:5173"
+    frontend_origin_regex: str | None = None
     auth_backend_url: str = "http://localhost:8010"
     client_backends: str = "agilent=http://localhost:8000,airindia=http://localhost:8001"
     request_timeout_seconds: float = 120
@@ -19,9 +20,12 @@ class Settings(BaseSettings):
 settings = Settings()
 app = FastAPI(title="Billing API Gateway", version="1.0.0")
 
+allowed_origins = [origin.strip() for origin in settings.frontend_origin.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
+    allow_origins=allowed_origins,
+    allow_origin_regex=settings.frontend_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
