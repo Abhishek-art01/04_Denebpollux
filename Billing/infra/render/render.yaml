@@ -1,0 +1,85 @@
+services:
+  - type: web
+    name: denebpollux-billing-auth
+    runtime: python
+    rootDir: Billing/services/auth
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: TOKEN_SECRET
+        generateValue: true
+      - key: AUTH_USERS
+        sync: false
+      - key: TOKEN_TTL_SECONDS
+        value: 43200
+
+  - type: web
+    name: denebpollux-billing-agilent-api
+    runtime: python
+    rootDir: Billing/services/clients/agilent
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: DATABASE_URL
+        fromDatabase:
+          name: denebpollux-billing-db
+          property: connectionString
+      - key: DB_SCHEMA
+        value: agilent
+      - key: FRONTEND_ORIGIN
+        sync: false
+
+  - type: web
+    name: denebpollux-billing-airindia-api
+    runtime: python
+    rootDir: Billing/services/clients/airindia
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: DATABASE_URL
+        fromDatabase:
+          name: denebpollux-billing-db
+          property: connectionString
+      - key: DB_SCHEMA
+        value: airindia
+      - key: FRONTEND_ORIGIN
+        sync: false
+
+  - type: web
+    name: denebpollux-billing-gateway
+    runtime: python
+    rootDir: Billing/services/api-gateway
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: AUTH_BACKEND_URL
+        value: https://denebpollux-billing-auth.onrender.com
+      - key: CLIENT_BACKENDS
+        value: agilent=https://denebpollux-billing-agilent-api.onrender.com,airindia=https://denebpollux-billing-airindia-api.onrender.com
+      - key: REQUEST_TIMEOUT_SECONDS
+        value: 120
+
+databases:
+  - name: denebpollux-billing-db
+    databaseName: billing_common
+    user: billing_user

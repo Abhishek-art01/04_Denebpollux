@@ -1,0 +1,408 @@
+/* ============================================================
+   Design tokens - Air India billing dashboard.
+   Distinct from the Agilent app's amber/navy ledger palette:
+   here we use a slate-blue + teal accent (aviation-adjacent,
+   still restrained for a finance tool). Tabular numerals for
+   all monetary figures so columns of numbers stay scannable.
+   ============================================================ */
+:root {
+  --ink-900: #1b2638;
+  --ink-700: #3a4a63;
+  --ink-400: #7e8da3;
+  --ink-200: #d9dfe8;
+  --surface-0: #f7f9fb;
+  --surface-1: #ffffff;
+  --surface-2: #eef2f6;
+  --line: #dde3ea;
+  --accent-500: #0f7d8c;   /* teal accent - Air India */
+  --accent-600: #0b606c;
+  --accent-100: #d9f0f0;
+  --positive-600: #2f6b4f;
+  --negative-600: #9c3b30;
+  --negative-100: #f7e6e3;
+
+  --font-display: "Source Serif 4", "Georgia", serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+
+  --radius-card: 10px;
+  --radius-control: 6px;
+  --shadow-card: 0 1px 2px rgba(27, 38, 56, 0.06), 0 4px 16px rgba(27, 38, 56, 0.04);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--surface-0);
+  color: var(--ink-900);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root { min-height: 100vh; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ---------- Navbar ---------- */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  background: var(--ink-900);
+  color: var(--surface-0);
+  border-bottom: 3px solid var(--accent-500);
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--font-display);
+}
+
+.navbar-brand .brand-name {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.navbar-brand .brand-sub {
+  font-size: 12px;
+  color: var(--ink-200);
+  font-family: var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.navbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.nav-link {
+  font-size: 13px;
+  color: var(--ink-200);
+  padding: 6px 10px;
+  border-radius: var(--radius-control);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--surface-0);
+}
+
+.nav-link.active {
+  background: var(--accent-500);
+  color: var(--surface-0);
+  font-weight: 600;
+}
+
+/* ---------- Select / Dropdown ---------- */
+.select-control {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.select-control label {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-200);
+}
+
+.select-control select {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--surface-0);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-control);
+  padding: 7px 10px;
+  font-size: 13.5px;
+  font-family: var(--font-body);
+  min-width: 150px;
+  cursor: pointer;
+}
+
+.select-control select:focus-visible {
+  outline: 2px solid var(--accent-500);
+  outline-offset: 1px;
+}
+
+/* ---------- Layout body ---------- */
+.app-body { flex: 1; display: flex; width: 100%; }
+
+.main-content {
+  flex: 1;
+  padding: 28px 32px 60px;
+  max-width: 1180px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ---------- Report header row ---------- */
+.report-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.report-title-block .eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-600);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.report-title-block h1 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--ink-900);
+}
+
+.report-title-block .report-period {
+  font-size: 13.5px;
+  color: var(--ink-400);
+  margin-top: 4px;
+}
+
+/* ---------- Download button ---------- */
+.btn-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent-500);
+  color: var(--surface-0);
+  border: none;
+  border-radius: var(--radius-control);
+  padding: 10px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.btn-download:hover { background: var(--accent-600); }
+.btn-download:active { transform: translateY(1px); }
+.btn-download:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---------- Cards ---------- */
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 20px 22px;
+  margin-bottom: 22px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-700);
+  margin: 0 0 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ---------- KPI summary cards ---------- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.kpi-card {
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-card);
+}
+
+.kpi-card .kpi-label {
+  font-size: 11.5px;
+  color: var(--ink-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.kpi-card .kpi-value {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink-900);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-card.positive .kpi-value { color: var(--positive-600); }
+.kpi-card.negative .kpi-value { color: var(--negative-600); }
+
+/* ---------- Data table ---------- */
+.data-table-wrap { overflow-x: auto; }
+
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+table.data-table thead th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-400);
+  font-weight: 600;
+  padding: 8px 12px;
+  border-bottom: 2px solid var(--ink-900);
+  white-space: nowrap;
+}
+
+table.data-table thead th.numeric,
+table.data-table td.numeric { text-align: right; }
+
+table.data-table tbody td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-900);
+  white-space: nowrap;
+}
+
+table.data-table tbody td.numeric {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+table.data-table tbody tr:hover { background: var(--surface-2); }
+
+table.data-table tfoot td {
+  padding: 10px 12px;
+  font-weight: 700;
+  border-top: 2px solid var(--ink-900);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+table.data-table .row-label-strong { font-weight: 600; }
+table.data-table .row-subtle { color: var(--ink-400); }
+table.data-table .row-negative td.numeric { color: var(--negative-600); }
+table.data-table .section-divider td { border-top: 1px solid var(--ink-200); }
+
+/* ---------- Upload page ---------- */
+.upload-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.upload-card {
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 18px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.upload-card h3 { margin: 0; font-size: 14.5px; font-weight: 600; color: var(--ink-900); }
+.upload-card p { margin: 0; font-size: 12.5px; color: var(--ink-400); line-height: 1.5; }
+.upload-card input[type="file"] { font-size: 12.5px; }
+
+.upload-status { font-size: 12px; padding: 6px 10px; border-radius: var(--radius-control); }
+.upload-status.success { background: #e8f1ec; color: var(--positive-600); }
+.upload-status.error { background: var(--negative-100); color: var(--negative-600); }
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--ink-900);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-secondary:hover { background: var(--ink-200); }
+
+/* ---------- Forms ---------- */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.form-field { display: flex; flex-direction: column; gap: 5px; }
+.form-field label { font-size: 12px; color: var(--ink-700); font-weight: 500; }
+.form-field input {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  padding: 9px 11px;
+  font-size: 13.5px;
+  font-family: var(--font-mono);
+}
+.form-field input:focus-visible { outline: 2px solid var(--accent-500); outline-offset: 1px; }
+
+.form-actions { margin-top: 16px; display: flex; gap: 10px; }
+
+.btn-primary {
+  background: var(--ink-900);
+  color: var(--surface-0);
+  border: none;
+  border-radius: var(--radius-control);
+  padding: 10px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-primary:hover { background: var(--ink-700); }
+
+/* ---------- Empty / loading states ---------- */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--ink-400); }
+.empty-state h3 { color: var(--ink-700); font-family: var(--font-display); font-size: 19px; margin-bottom: 8px; }
+.empty-state p { font-size: 13.5px; max-width: 420px; margin: 0 auto; }
+.loading-state { text-align: center; padding: 60px 20px; color: var(--ink-400); font-size: 13.5px; }
+
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-600);
+  margin: 18px 0 8px;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 720px) {
+  .main-content { padding: 20px 16px 50px; }
+  .navbar { padding: 12px 16px; }
+  .report-header { flex-direction: column; align-items: stretch; }
+}

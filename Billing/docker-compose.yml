@@ -1,0 +1,76 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: billing_user
+      POSTGRES_PASSWORD: billing_pass
+      POSTGRES_DB: billing_common
+    ports:
+      - "5432:5432"
+    volumes:
+      - billing_common_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U billing_user -d billing_common"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  auth-backend:
+    build: ./services/auth
+    restart: unless-stopped
+    environment:
+      FRONTEND_ORIGIN: http://localhost:5173
+      TOKEN_SECRET: ${TOKEN_SECRET:-change-this-secret}
+      AUTH_USERS: ${AUTH_USERS:-admin:admin123:Admin}
+    ports:
+      - "8010:8010"
+
+  agilent-backend:
+    build: ./services/clients/agilent
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://billing_user:billing_pass@db:5432/billing_common
+      DB_SCHEMA: agilent
+      FRONTEND_ORIGIN: http://localhost:5173
+    depends_on:
+      db:
+        condition: service_healthy
+
+  airindia-backend:
+    build: ./services/clients/airindia
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://billing_user:billing_pass@db:5432/billing_common
+      DB_SCHEMA: airindia
+      FRONTEND_ORIGIN: http://localhost:5173
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api-gateway:
+    build: ./services/api-gateway
+    restart: unless-stopped
+    environment:
+      FRONTEND_ORIGIN: http://localhost:5173
+      AUTH_BACKEND_URL: http://auth-backend:8010
+      CLIENT_BACKENDS: agilent=http://agilent-backend:8000,airindia=http://airindia-backend:8001
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-backend
+      - agilent-backend
+      - airindia-backend
+
+  billing-web:
+    build: ./apps/billing-web
+    restart: unless-stopped
+    environment:
+      VITE_API_PROXY_TARGET: http://api-gateway:8080
+    ports:
+      - "${BILLING_WEB_PORT:-5173}:5173"
+    depends_on:
+      - api-gateway
+
+volumes:
+  billing_common_pgdata:
