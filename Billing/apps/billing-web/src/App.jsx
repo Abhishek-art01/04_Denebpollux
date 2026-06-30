@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Navigate, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { DashboardProvider } from "./context/DashboardContext.jsx";
@@ -10,6 +10,7 @@ import LoginPage from "./pages/LoginPage.jsx";
 
 function BillingShell() {
   const { isAuthenticated } = useAuth();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   if (!isAuthenticated) {
     return (
@@ -23,8 +24,11 @@ function BillingShell() {
   return (
     <DashboardProvider>
       <div className="portal-shell">
-        <Sidebar />
-        <div className="workspace-shell">
+        <Sidebar
+          collapsed={isSidebarCollapsed}
+          onToggle={() => setIsSidebarCollapsed((current) => !current)}
+        />
+        <div className={`workspace-shell ${isSidebarCollapsed ? "sidebar-is-collapsed" : ""}`}>
           <Navbar />
           <main className="main-content">
             <Routes>

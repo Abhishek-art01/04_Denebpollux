@@ -7,13 +7,19 @@ const CLIENT_ICONS = {
   airindia: "flight_takeoff",
 };
 
-export default function Sidebar() {
+export default function Sidebar({ collapsed, onToggle }) {
   const { selectedClient, setSelectedClient, logout, user } = useAuth();
 
   return (
-    <aside className="sidebar" aria-label="Client navigation">
+    <aside className={`sidebar ${collapsed ? "collapsed" : ""}`} aria-label="Client navigation">
       <div className="sidebar-header">
-        <button className="sidebar-menu-button" type="button" aria-label="Open menu">
+        <button
+          className="sidebar-menu-button"
+          type="button"
+          aria-label={collapsed ? "Show side panel" : "Hide side panel"}
+          aria-pressed={collapsed}
+          onClick={onToggle}
+        >
           <span className="material-symbols-outlined" aria-hidden="true">menu</span>
         </button>
         <div className="sidebar-identity">
@@ -39,24 +45,24 @@ export default function Sidebar() {
               <span className="material-symbols-outlined" aria-hidden="true">
                 {CLIENT_ICONS[client.id] || "domain"}
               </span>
-              <span>{client.name}</span>
+              <span className="sidebar-text">{client.name}</span>
             </button>
           );
         })}
         <button className="sidebar-link muted" type="button" disabled title="New Client">
           <span className="material-symbols-outlined" aria-hidden="true">add_circle</span>
-          <span>New Client</span>
+          <span className="sidebar-text">New Client</span>
         </button>
       </nav>
 
       <div className="sidebar-footer">
         <div className="sidebar-user">
           <span className="material-symbols-outlined" aria-hidden="true">account_circle</span>
-          <span>{user?.name || user?.username}</span>
+          <span className="sidebar-text">{user?.name || user?.username}</span>
         </div>
         <button className="sidebar-link" type="button" onClick={logout} title="Logout">
           <span className="material-symbols-outlined" aria-hidden="true">logout</span>
-          <span>Logout</span>
+          <span className="sidebar-text">Logout</span>
         </button>
       </div>
     </aside>
