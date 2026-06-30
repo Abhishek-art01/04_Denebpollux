@@ -21,7 +21,11 @@ export default function LoginPage() {
       await login(username.trim(), password);
     } catch (err) {
       console.error(err);
-      setError("Invalid username or password.");
+      if (err.response?.status === 401) {
+        setError("Invalid username or password.");
+      } else {
+        setError("Billing API unavailable. Please try again in a minute.");
+      }
     } finally {
       setLoading(false);
     }
