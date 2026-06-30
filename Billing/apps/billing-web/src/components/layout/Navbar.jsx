@@ -113,18 +113,21 @@ export default function Navbar() {
       </div>
 
       <div className="navbar-controls">
-        <button
-          className="icon-button"
-          type="button"
-          onClick={refreshMonths}
-          disabled={monthsLoading}
-          title={monthsLoading ? "Refreshing" : "Refresh billing data"}
-          aria-label={monthsLoading ? "Refreshing billing data" : "Refresh billing data"}
-        >
-          <span className="material-symbols-outlined" aria-hidden="true">
-            refresh
-          </span>
-        </button>
+        <div className="refresh-control">
+          <span className="control-label-spacer" aria-hidden="true" />
+          <button
+            className="icon-button"
+            type="button"
+            onClick={refreshMonths}
+            disabled={monthsLoading}
+            title={monthsLoading ? "Refreshing" : "Refresh billing data"}
+            aria-label={monthsLoading ? "Refreshing billing data" : "Refresh billing data"}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">
+              refresh
+            </span>
+          </button>
+        </div>
         <DashboardSelector />
         <MonthSelector />
       </div>

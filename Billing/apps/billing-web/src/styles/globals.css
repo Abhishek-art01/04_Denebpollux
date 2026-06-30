@@ -31,6 +31,10 @@
   --radius-card: 10px;
   --radius-control: 6px;
   --shadow-card: 0 1px 2px rgba(20, 33, 58, 0.06), 0 4px 16px rgba(20, 33, 58, 0.04);
+  --navbar-height: 68px;
+  --navbar-control-height: 38px;
+  --navbar-label-height: 13px;
+  --navbar-control-gap: 3px;
 }
 
 * {
@@ -275,7 +279,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 68px;
+  min-height: var(--navbar-height);
   padding: 12px 24px;
   background: var(--ink-900);
   color: var(--surface-0);
@@ -290,13 +294,15 @@ button {
   gap: 24px;
   flex: 1 1 auto;
   min-width: 0;
+  min-height: var(--navbar-control-height);
 }
 
 .navbar-brand {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   min-width: 0;
+  height: var(--navbar-control-height);
 }
 
 .navbar-brand .brand-name {
@@ -320,11 +326,12 @@ button {
   align-items: center;
   gap: 12px;
   min-width: 0;
+  height: var(--navbar-control-height);
 }
 
 .navbar-controls {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-end;
   gap: 10px;
   flex: 0 0 auto;
@@ -335,6 +342,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  height: var(--navbar-control-height);
   font-size: 14px;
   font-weight: 600;
   color: var(--ink-200);
@@ -358,12 +366,13 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 186px;
+  width: 190px;
+  height: var(--navbar-control-height);
 }
 
 .header-upload-select {
   width: 100%;
-  height: 38px;
+  height: var(--navbar-control-height);
   appearance: none;
   border: 1px solid rgba(183, 200, 225, 0.36);
   border-radius: var(--radius-control);
@@ -423,8 +432,8 @@ button {
 }
 
 .icon-button {
-  width: 38px;
-  height: 38px;
+  width: var(--navbar-control-height);
+  height: var(--navbar-control-height);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -448,14 +457,28 @@ button {
   cursor: progress;
 }
 
+.refresh-control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--navbar-control-gap);
+}
+
+.control-label-spacer {
+  display: block;
+  height: var(--navbar-label-height);
+}
+
 /* ---------- Select / Dropdown ---------- */
 .select-control {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--navbar-control-gap);
 }
 
 .select-control label {
+  display: block;
+  height: var(--navbar-label-height);
+  line-height: var(--navbar-label-height);
   font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -470,7 +493,7 @@ button {
   padding: 7px 10px;
   font-size: 13.5px;
   font-family: var(--font-body);
-  height: 38px;
+  height: var(--navbar-control-height);
   min-width: 150px;
   cursor: pointer;
 }
@@ -481,11 +504,13 @@ button {
 }
 
 .navbar .select-control select {
-  min-width: 184px;
+  min-width: 210px;
+  width: 210px;
 }
 
 .navbar .select-control:last-child select {
-  min-width: 160px;
+  min-width: 124px;
+  width: 124px;
 }
 
 .select-control select:focus-visible {
