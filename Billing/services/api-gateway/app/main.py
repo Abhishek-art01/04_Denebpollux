@@ -44,7 +44,7 @@ def parse_client_backends() -> dict[str, str]:
 
 
 CLIENT_BACKENDS = parse_client_backends()
-WAKE_RETRY_DELAYS_SECONDS = [0, 3, 6, 9, 12]
+WAKE_RETRY_DELAYS_SECONDS = [0, 10, 20, 30, 45]
 HOP_BY_HOP_HEADERS = {
     "accept-encoding",
     "connection",
