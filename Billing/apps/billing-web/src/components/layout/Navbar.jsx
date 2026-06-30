@@ -19,7 +19,7 @@ const AGILENT_UPLOAD_LABELS = {
 export default function Navbar() {
   const { selectedClient } = useAuth();
   const clientConfig = getClientConfig(selectedClient);
-  const { refreshMonths } = useDashboard();
+  const { months, refreshMonths } = useDashboard();
   const fileInputRef = useRef(null);
   const [pendingSheetKey, setPendingSheetKey] = useState("");
   const [uploadStatus, setUploadStatus] = useState("");
@@ -52,8 +52,21 @@ export default function Navbar() {
       setUploadStatus(`Uploaded ${selectedSheet?.title || "sheet"}`);
     } catch (error) {
       console.error(error);
-      const detail = error?.response?.data?.detail || "Check file format and required columns";
-      setUploadStatus(`Upload failed: ${detail}`);
+      const detail = error?.response?.data?.detail;
+      if (!detail) {
+        try {
+          const latestMonths = await refreshMonths();
+          const dataIsVisible = Array.isArray(latestMonths) && latestMonths.length > 0 && latestMonths.length >= months.length;
+          if (dataIsVisible) {
+            setUploadStatus("Upload submitted; confirmation was interrupted. Data refreshed.");
+            return;
+          }
+        } catch (refreshError) {
+          console.error(refreshError);
+        }
+      }
+      const message = detail || "Upload confirmation was interrupted. Check the dashboard before retrying.";
+      setUploadStatus(`Upload failed: ${message}`);
     } finally {
       event.target.value = "";
       setPendingSheetKey("");

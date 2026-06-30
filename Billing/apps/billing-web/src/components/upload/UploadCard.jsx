@@ -26,8 +26,25 @@ export default function UploadCard({ sheetKey, title, description, onUploaded })
       onUploaded?.();
     } catch (err) {
       console.error(err);
-      const detail = err?.response?.data?.detail || "Upload failed. Check the file format and try again.";
-      setStatus({ type: "error", message: detail });
+      const detail = err?.response?.data?.detail;
+      if (!detail) {
+        try {
+          const latestMonths = await onUploaded?.();
+          if (Array.isArray(latestMonths) && latestMonths.length > 0) {
+            setStatus({
+              type: "success",
+              message: "Upload submitted; confirmation was interrupted. Data refreshed.",
+            });
+            return;
+          }
+        } catch (refreshError) {
+          console.error(refreshError);
+        }
+      }
+      setStatus({
+        type: "error",
+        message: detail || "Upload confirmation was interrupted. Check the dashboard before retrying.",
+      });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

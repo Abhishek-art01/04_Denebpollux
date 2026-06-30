@@ -32,7 +32,10 @@ def _handle_upload(file: UploadFile, spec, sheet_name: str, db: Session) -> Uplo
     import pandas as pd
     from io import BytesIO
     df = pd.read_excel(BytesIO(file_bytes))
-    month_value = str(df["Month"].dropna().iloc[0]).strip() if "Month" in df.columns and not df["Month"].dropna().empty else "unknown"
+    df.columns = [str(column).strip() for column in df.columns]
+    month_column = "Month" if "Month" in df.columns else "MONTH" if "MONTH" in df.columns else None
+    month_values = df[month_column].dropna() if month_column else []
+    month_value = str(month_values.iloc[0]).strip() if len(month_values) else "unknown"
 
     return UploadResponse(sheet=sheet_name, month=month_value, rows_inserted=rows_inserted, warnings=warnings)
 

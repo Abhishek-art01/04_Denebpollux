@@ -23,6 +23,7 @@ export function DashboardProvider({ children }) {
       if (result.length > 0 && !selectedMonth) {
         setSelectedMonth(result[result.length - 1]); // default to most recent month
       }
+      return result;
     } catch (err) {
       console.error("Failed to load months", err);
       setMonths([]);
@@ -30,6 +31,7 @@ export function DashboardProvider({ children }) {
       setMonthsError(
         "Unable to reach the billing API gateway. Check that VITE_API_BASE_URL points to the gateway /api URL."
       );
+      return [];
     } finally {
       setMonthsLoading(false);
     }
