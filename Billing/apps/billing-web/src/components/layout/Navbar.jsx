@@ -52,7 +52,8 @@ export default function Navbar() {
       setUploadStatus(`Uploaded ${selectedSheet?.title || "sheet"}`);
     } catch (error) {
       console.error(error);
-      setUploadStatus("Upload failed");
+      const detail = error?.response?.data?.detail || "Check file format and required columns";
+      setUploadStatus(`Upload failed: ${detail}`);
     } finally {
       event.target.value = "";
       setPendingSheetKey("");
