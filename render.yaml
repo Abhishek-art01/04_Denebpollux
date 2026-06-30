@@ -33,7 +33,7 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: DB_SCHEMA
-        value: agilent
+        value: public
       - key: FRONTEND_ORIGIN
         sync: false
 
