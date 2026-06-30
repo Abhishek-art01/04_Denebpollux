@@ -10,7 +10,7 @@ import LoginPage from "./pages/LoginPage.jsx";
 
 function BillingShell() {
   const { isAuthenticated } = useAuth();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
 
   if (!isAuthenticated) {
     return (
