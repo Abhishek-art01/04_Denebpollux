@@ -40,6 +40,7 @@ def parse_client_backends() -> dict[str, str]:
 
 CLIENT_BACKENDS = parse_client_backends()
 HOP_BY_HOP_HEADERS = {
+    "accept-encoding",
     "connection",
     "content-encoding",
     "content-length",
