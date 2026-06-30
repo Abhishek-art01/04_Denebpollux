@@ -41,6 +41,9 @@ def parse_and_insert(file_bytes: bytes, spec: SheetSpec, db: Session) -> tuple[i
     df = pd.read_excel(BytesIO(file_bytes))
     df.columns = [str(c).strip() for c in df.columns]
 
+    if "Month" not in df.columns and "MONTH" in df.columns:
+        df = df.rename(columns={"MONTH": "Month"})
+
     if "Month" not in df.columns:
         raise ValueError("Uploaded sheet is missing the required 'Month' column.")
 
