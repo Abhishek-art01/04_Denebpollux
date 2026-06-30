@@ -99,8 +99,11 @@ If Render changes a service URL, update the gateway env vars:
 - `AUTH_BACKEND_URL`
 - `CLIENT_BACKENDS`
 
-Your frontend should call only the gateway:
+The deployed Vercel frontend should call its same-origin API proxy:
 
 ```text
-VITE_API_BASE_URL=https://denebpollux-billing-gateway.onrender.com/api
+VITE_API_BASE_URL=/api
 ```
+
+Vercel rewrites `/api/*` to the Render gateway defined in
+`Billing/apps/billing-web/vercel.json`.
