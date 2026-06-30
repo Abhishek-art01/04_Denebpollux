@@ -34,6 +34,7 @@ def on_startup():
     ensure_schema()
     Base.metadata.create_all(bind=engine)
     _ensure_terminal3_upload_columns()
+    _ensure_aiaa_upload_columns()
 
 
 def _ensure_terminal3_upload_columns():
@@ -88,6 +89,34 @@ def _ensure_terminal3_upload_columns():
         "toll_amount": "FLOAT",
         "trip_cost": "FLOAT",
         "taxable_amount": "FLOAT",
+    }
+
+    if settings.db_schema:
+        qualified_table = f'"{settings.db_schema}"."{table_name}"'
+    else:
+        qualified_table = f'"{table_name}"'
+
+    with engine.begin() as connection:
+        for column_name, column_type in required_columns.items():
+            if column_name not in existing_columns:
+                connection.execute(
+                    text(f'ALTER TABLE {qualified_table} ADD COLUMN "{column_name}" {column_type}')
+                )
+
+
+def _ensure_aiaa_upload_columns():
+    """Add columns introduced by the current AIAA upload format."""
+    table_name = "airindia_trip_data_aiaa"
+    inspector = inspect(engine)
+    if not inspector.has_table(table_name, schema=settings.db_schema or None):
+        return
+
+    existing_columns = {
+        column["name"]
+        for column in inspector.get_columns(table_name, schema=settings.db_schema or None)
+    }
+    required_columns = {
+        "ownership": "VARCHAR",
     }
 
     if settings.db_schema:

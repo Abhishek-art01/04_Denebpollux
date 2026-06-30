@@ -83,6 +83,7 @@ TRIP_DATA_AIAA_SPEC = SheetSpec(
         "PICKUP_TIME": "pickup_time",
         "REPORTING_TIME": "reporting_time",
         "VENDOR": "vendor",
+        "OWNERSHIP": "ownership",
         "CAB_NO": "cab_no",
         "VEHICLE_NUMBER": "vehicle_number",
         "CAB_TYPE": "cab_type",
