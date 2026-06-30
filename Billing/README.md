@@ -70,7 +70,6 @@ denebpollux-billing-gateway
 denebpollux-billing-auth
 denebpollux-billing-agilent-api
 denebpollux-billing-airindia-api
-denebpollux-billing-db
 ```
 
 Render deploys:
@@ -79,12 +78,13 @@ Render deploys:
 - Auth backend from `Billing/services/auth`
 - Agilent backend from `Billing/services/clients/agilent`
 - Air India backend from `Billing/services/clients/airindia`
-- One common PostgreSQL database, with client tables split by `DB_SCHEMA`
+- One external PostgreSQL database, with client tables split by `DB_SCHEMA`
 
 Set these Render environment values after creating the Blueprint:
 
 - `FRONTEND_ORIGIN`: your frontend origin, for example `https://your-site.netlify.app`
 - `AUTH_USERS`: comma-separated users, for example `admin:strong-password:Admin`
+- `DATABASE_URL`: external PostgreSQL connection string for each client API
 
 The gateway defaults assume Render creates these URLs:
 

@@ -31,9 +31,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.12.7
       - key: DATABASE_URL
-        fromDatabase:
-          name: denebpollux-billing-db
-          property: connectionString
+        sync: false
       - key: DB_SCHEMA
         value: agilent
       - key: FRONTEND_ORIGIN
@@ -51,9 +49,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.12.7
       - key: DATABASE_URL
-        fromDatabase:
-          name: denebpollux-billing-db
-          property: connectionString
+        sync: false
       - key: DB_SCHEMA
         value: airindia
       - key: FRONTEND_ORIGIN
@@ -78,8 +74,3 @@ services:
         value: agilent=https://denebpollux-billing-agilent-api.onrender.com,airindia=https://denebpollux-billing-airindia-api.onrender.com
       - key: REQUEST_TIMEOUT_SECONDS
         value: 120
-
-databases:
-  - name: denebpollux-billing-db
-    databaseName: billing_common
-    user: billing_user
