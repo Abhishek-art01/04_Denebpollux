@@ -4,9 +4,13 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "env": {
-    "VITE_API_BASE_URL": "https://denebpollux-billing-gateway.onrender.com/api"
+    "VITE_API_BASE_URL": "/api"
   },
   "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://denebpollux-billing-gateway.onrender.com/api/$1"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
