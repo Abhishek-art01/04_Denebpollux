@@ -82,7 +82,7 @@ Render deploys:
 
 Set these Render environment values after creating the Blueprint:
 
-- `FRONTEND_ORIGIN`: your frontend origin, for example `https://your-site.netlify.app`
+- `FRONTEND_ORIGIN`: your frontend origin, for example `https://billing-web-ashy.vercel.app`
 - `AUTH_USERS`: comma-separated users, for example `admin:strong-password:Admin`
 - `DATABASE_URL`: external PostgreSQL connection string for each client API
 

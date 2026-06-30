@@ -64,7 +64,7 @@ npm run dev
 Open http://localhost:5173. The Vite dev server proxies `/api/*` to the
 backend at `http://localhost:8000` (see `vite.config.js`).
 
-## Deploy: Netlify frontend + Render backend
+## Deploy: Vercel frontend + Render backend
 
 ### Render backend
 
@@ -79,18 +79,18 @@ manually with:
 Set these Render environment variables:
 
 - `DATABASE_URL` = your Supabase/PostgreSQL connection string
-- `FRONTEND_ORIGIN` = your Netlify site origin, e.g. `https://your-site.netlify.app`
+- `FRONTEND_ORIGIN` = your Vercel site origin, e.g. `https://billing-web-ashy.vercel.app`
 
-### Netlify frontend
+### Vercel frontend
 
-Netlify reads `netlify.toml` and builds the Vite app from `frontend/`.
+Vercel reads `vercel.json` and builds the Vite app from the frontend app directory.
 
-Set this Netlify environment variable:
+Set this Vercel environment variable:
 
 - `VITE_API_BASE_URL` = your Render API origin plus `/api`, e.g.
   `https://agilent-billing-api.onrender.com/api`
 
-After changing `VITE_API_BASE_URL`, trigger a new Netlify deploy because Vite
+After changing `VITE_API_BASE_URL`, trigger a new Vercel deploy because Vite
 injects environment variables at build time.
 
 ## Uploading data
