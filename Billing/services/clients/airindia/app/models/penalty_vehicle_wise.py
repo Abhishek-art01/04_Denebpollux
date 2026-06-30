@@ -13,7 +13,7 @@ from app.database import Base
 
 
 class PenaltyVehicleWise(Base):
-    __tablename__ = "penalty_vehicle_wise"
+    __tablename__ = "airindia_penalty_vehicle_wise"
 
     id = Column(Integer, primary_key=True, index=True)
     vehicle_no = Column(String, index=True, nullable=False)

@@ -7,7 +7,7 @@ from app.database import Base
 
 
 class TripDataAIAA(Base):
-    __tablename__ = "trip_data_aiaa"
+    __tablename__ = "airindia_trip_data_aiaa"
 
     id = Column(Integer, primary_key=True, index=True)
     sr_no = Column(String, nullable=True)

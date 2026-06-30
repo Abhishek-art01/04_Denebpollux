@@ -9,7 +9,7 @@ from app.database import Base
 
 
 class ManualInput(Base):
-    __tablename__ = "manual_inputs"
+    __tablename__ = "airindia_manual_inputs"
 
     id = Column(Integer, primary_key=True, index=True)
     month = Column(String, unique=True, index=True, nullable=False)

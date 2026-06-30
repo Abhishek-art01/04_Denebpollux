@@ -15,7 +15,7 @@ from app.database import Base
 
 
 class Sundries(Base):
-    __tablename__ = "sundries"
+    __tablename__ = "airindia_sundries"
 
     id = Column(Integer, primary_key=True, index=True)
     vehicle_no = Column(String, index=True, nullable=False)  # "Vehicle No." - JOIN KEY (matches CabNo./CAB NO)
