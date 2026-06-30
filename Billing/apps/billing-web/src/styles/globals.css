@@ -275,11 +275,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 64px;
-  padding: 10px 24px;
+  min-height: 68px;
+  padding: 12px 24px;
   background: var(--ink-900);
   color: var(--surface-0);
-  gap: 20px;
+  gap: 18px;
   flex-wrap: nowrap;
   flex-shrink: 0;
 }
@@ -287,7 +287,8 @@ button {
 .navbar-left {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 24px;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -318,13 +319,15 @@ button {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .navbar-controls {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 16px;
+  gap: 10px;
+  flex: 0 0 auto;
   min-width: 0;
 }
 
@@ -360,7 +363,7 @@ button {
 
 .header-upload-select {
   width: 100%;
-  height: 34px;
+  height: 38px;
   appearance: none;
   border: 1px solid rgba(183, 200, 225, 0.36);
   border-radius: var(--radius-control);
@@ -426,15 +429,18 @@ button {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  border: 1px solid rgba(183, 200, 225, 0.36);
+  border: 1px solid rgba(104, 151, 255, 0.55);
   border-radius: var(--radius-control);
-  background: var(--surface-1);
-  color: var(--ink-800);
+  background: var(--accent-100);
+  color: var(--accent-600);
   cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .icon-button:hover {
-  background: var(--surface-2);
+  border-color: rgba(104, 151, 255, 0.8);
+  background: var(--accent-500);
+  color: var(--surface-0);
 }
 
 .icon-button:disabled {
@@ -464,6 +470,7 @@ button {
   padding: 7px 10px;
   font-size: 13.5px;
   font-family: var(--font-body);
+  height: 38px;
   min-width: 150px;
   cursor: pointer;
 }
