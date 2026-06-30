@@ -3,6 +3,7 @@ import { Navigate, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { DashboardProvider } from "./context/DashboardContext.jsx";
 import Navbar from "./components/layout/Navbar.jsx";
+import Sidebar from "./components/layout/Sidebar.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import UploadPage from "./pages/UploadPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -21,9 +22,10 @@ function BillingShell() {
 
   return (
     <DashboardProvider>
-      <div className="app-shell">
-        <Navbar />
-        <div className="app-body">
+      <div className="portal-shell">
+        <Sidebar />
+        <div className="workspace-shell">
+          <Navbar />
           <main className="main-content">
             <Routes>
               <Route path="/" element={<DashboardPage />} />

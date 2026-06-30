@@ -8,22 +8,23 @@
    on data tables (radius is reserved for cards/buttons only).
    ============================================================ */
 :root {
-  --ink-900: #14213a;       /* primary text / navy */
-  --ink-700: #34415c;
-  --ink-400: #7c8aa3;
-  --ink-200: #d7dce6;
-  --surface-0: #fbfaf7;     /* page background, warm paper */
+  --ink-900: #0b1c30;       /* primary text / navy */
+  --ink-700: #38485d;
+  --ink-400: #737688;
+  --ink-200: #b7c8e1;
+  --surface-0: #f7f9fb;     /* page background */
   --surface-1: #ffffff;     /* card background */
-  --surface-2: #f1eee6;     /* subtle section fill */
-  --line: #e3ddd0;
-  --accent-500: #b8862b;    /* amber/gold - billing accent */
-  --accent-600: #96691c;
-  --accent-100: #f6ead0;
+  --surface-2: #f2f4f6;     /* subtle section fill */
+  --surface-3: #eceef0;
+  --line: #e0e3e5;
+  --accent-500: #0052ff;    /* primary portal blue */
+  --accent-600: #003ec7;
+  --accent-100: #dde1ff;
   --positive-600: #2f6b4f;
   --negative-600: #9c3b30;
   --negative-100: #f7e6e3;
 
-  --font-display: "Source Serif 4", "Georgia", serif;
+  --font-display: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
 
@@ -45,6 +46,10 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+body {
+  overflow: hidden;
+}
+
 #root {
   min-height: 100vh;
 }
@@ -58,10 +63,182 @@ button {
   font-family: inherit;
 }
 
-.app-shell {
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-flex;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+.portal-shell {
+  display: flex;
+  min-height: 100vh;
+  height: 100vh;
+  background: var(--surface-0);
+  overflow: hidden;
+}
+
+.workspace-shell {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+  width: 256px;
+  flex: 0 0 256px;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  background: var(--surface-1);
+  border-right: 1px solid var(--line);
+  box-shadow: 0 1px 3px rgba(11, 28, 48, 0.08);
+  z-index: 10;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.sidebar-menu-button {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--ink-700);
+  cursor: pointer;
+}
+
+.sidebar-menu-button:hover {
+  color: var(--accent-600);
+  background: var(--surface-2);
+}
+
+.sidebar-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sidebar-avatar {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--ink-700);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sidebar-company {
+  min-width: 0;
+  color: var(--ink-700);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.sidebar-section-label {
+  padding: 16px 12px 8px;
+  color: var(--ink-400);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sidebar-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--ink-700);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.sidebar-link:hover {
+  background: var(--surface-2);
+  color: var(--ink-900);
+}
+
+.sidebar-link.active {
+  background: var(--surface-2);
+  color: var(--accent-600);
+  font-weight: 700;
+  box-shadow: inset -4px 0 0 var(--accent-500);
+}
+
+.sidebar-link.active .material-symbols-outlined {
+  font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24;
+}
+
+.sidebar-link.muted,
+.sidebar-link:disabled {
+  color: var(--ink-400);
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.sidebar-footer {
+  border-top: 1px solid var(--line);
+  padding: 12px;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 10px;
+  color: var(--ink-400);
+  font-size: 13px;
+  overflow: hidden;
+}
+
+.sidebar-user span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ---------- Navbar ---------- */
@@ -69,46 +246,67 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 28px;
+  min-height: 64px;
+  padding: 10px 24px;
   background: var(--ink-900);
   color: var(--surface-0);
-  border-bottom: 3px solid var(--accent-500);
-  gap: 24px;
-  flex-wrap: wrap;
+  gap: 20px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  min-width: 0;
 }
 
 .navbar-brand {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  font-family: var(--font-display);
+  min-width: 0;
 }
 
 .navbar-brand .brand-name {
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0;
+  white-space: nowrap;
 }
 
 .navbar-brand .brand-sub {
   font-size: 12px;
   color: var(--ink-200);
-  font-family: var(--font-body);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .navbar-controls {
   display: flex;
   align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 16px;
+  min-width: 0;
 }
 
 .nav-link {
-  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--ink-200);
-  padding: 6px 10px;
+  padding: 8px 10px;
   border-radius: var(--radius-control);
   transition: background 0.15s ease, color 0.15s ease;
 }
@@ -119,14 +317,50 @@ button {
 }
 
 .nav-link.active {
-  background: var(--accent-500);
-  color: var(--ink-900);
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.11);
+  color: var(--surface-0);
 }
 
-.session-user {
-  font-size: 12.5px;
+.nav-dropdown {
+  position: relative;
+}
+
+.nav-dropdown-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  min-width: 184px;
+  padding: 6px 0;
+  border: 1px solid #434656;
+  border-radius: var(--radius-control);
+  background: var(--ink-900);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+  z-index: 50;
+}
+
+.nav-dropdown:hover .nav-dropdown-menu,
+.nav-dropdown:focus-within .nav-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.nav-dropdown-menu a,
+.nav-dropdown-menu span {
+  display: block;
+  padding: 9px 14px;
   color: var(--ink-200);
+  font-size: 13px;
+}
+
+.nav-dropdown-menu a:hover,
+.nav-dropdown-menu span:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--surface-0);
 }
 
 .btn-ghost {
@@ -137,11 +371,6 @@ button {
   padding: 7px 10px;
   font-size: 13px;
   cursor: pointer;
-}
-
-.btn-ghost:hover {
-  color: var(--surface-0);
-  background: rgba(255, 255, 255, 0.08);
 }
 
 /* ---------- Select / Dropdown ---------- */
@@ -170,24 +399,26 @@ button {
   cursor: pointer;
 }
 
+.navbar .select-control select {
+  min-width: 184px;
+}
+
+.navbar .select-control:last-child select {
+  min-width: 160px;
+}
+
 .select-control select:focus-visible {
   outline: 2px solid var(--accent-500);
   outline-offset: 1px;
 }
 
 /* ---------- Layout body ---------- */
-.app-body {
-  flex: 1;
-  display: flex;
-  width: 100%;
-}
-
 .main-content {
   flex: 1;
+  overflow-y: auto;
   padding: 28px 32px 60px;
-  max-width: 1180px;
-  margin: 0 auto;
   width: 100%;
+  max-width: none;
 }
 
 /* ---------- Report header row ---------- */
@@ -595,11 +826,70 @@ table.data-table .section-divider td {
 
 /* ---------- Responsive ---------- */
 @media (max-width: 720px) {
+  body {
+    overflow: auto;
+  }
+  .portal-shell {
+    min-height: 100vh;
+    height: auto;
+    flex-direction: column;
+    overflow: visible;
+  }
+  .sidebar {
+    width: 100%;
+    flex: 0 0 auto;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+  .sidebar-header {
+    padding: 14px 16px;
+  }
+  .sidebar-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 12px;
+  }
+  .sidebar-section-label,
+  .sidebar-footer,
+  .sidebar-menu-button {
+    display: none;
+  }
+  .sidebar-link {
+    width: auto;
+    min-width: max-content;
+    min-height: 38px;
+    padding: 8px 10px;
+  }
+  .sidebar-link.active {
+    box-shadow: inset 0 -3px 0 var(--accent-500);
+  }
+  .workspace-shell {
+    overflow: visible;
+  }
   .main-content {
     padding: 20px 16px 50px;
+    overflow: visible;
   }
   .navbar {
     padding: 12px 16px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .navbar-left,
+  .navbar-controls {
+    align-items: flex-start;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .navbar-brand .brand-name {
+    font-size: 20px;
+  }
+  .navbar .select-control select {
+    min-width: min(240px, calc(100vw - 32px));
   }
   .report-header {
     flex-direction: column;
