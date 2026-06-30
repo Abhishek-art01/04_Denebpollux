@@ -70,7 +70,7 @@ export const CLIENTS = [
         key: "tripDataTerminal3",
         title: "Trip_Data_TERMINAL-3",
         description:
-          "CabNo., Cab Type, TripCost, TollAmount, Ownership, Month, and the Terminal-3 trip columns.",
+          "SR_NO, TRIP_TYPE, STAFF_COUNT, BILL_MAKE, DATE, MONTH, DUTY_TYPE, DUTY_TYPE2, UNA, ROUTE_NO, TRIP_ID, EMPLOYEE_ID, TEAM_TYPE, GENDER, EMPLOYEE_NAME, EMPLOYEE_ADDRESS, LOCATION, BA_TIME, ETD_TIME, CABNO., VEHICLE_NUMBER, OWNERSHIP, CAB_TYPE, USE_KM, CLUBBING_KM, TOTAL_KM, ONE_SIDE, TWO_SIDE, CLUB, TOTAL, BB, PASS_KM, DIFF, MARSHALL, REPORTING, VENDOR, TOLL_NAME, TOLL_AMOUNT, TRIP_COST, TAXABLE_AMOUNT.",
       },
       {
         key: "tripDataAIAA",

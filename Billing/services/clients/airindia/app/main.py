@@ -4,6 +4,7 @@ tables on startup, registers CORS, and includes all routers.
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import inspect, text
 
 from app.config import settings
 from app.database import Base, engine, ensure_schema
@@ -32,6 +33,37 @@ app.include_router(months.router)
 def on_startup():
     ensure_schema()
     Base.metadata.create_all(bind=engine)
+    _ensure_terminal3_upload_columns()
+
+
+def _ensure_terminal3_upload_columns():
+    """Add columns introduced by the current Terminal 3 upload format."""
+    table_name = "airindia_trip_data_terminal3"
+    inspector = inspect(engine)
+    if not inspector.has_table(table_name, schema=settings.db_schema or None):
+        return
+
+    existing_columns = {
+        column["name"]
+        for column in inspector.get_columns(table_name, schema=settings.db_schema or None)
+    }
+    required_columns = {
+        "location": "VARCHAR",
+        "vehicle_number": "VARCHAR",
+        "pass_km": "FLOAT",
+    }
+
+    if settings.db_schema:
+        qualified_table = f'"{settings.db_schema}"."{table_name}"'
+    else:
+        qualified_table = f'"{table_name}"'
+
+    with engine.begin() as connection:
+        for column_name, column_type in required_columns.items():
+            if column_name not in existing_columns:
+                connection.execute(
+                    text(f'ALTER TABLE {qualified_table} ADD COLUMN "{column_name}" {column_type}')
+                )
 
 
 @app.get("/api/health")

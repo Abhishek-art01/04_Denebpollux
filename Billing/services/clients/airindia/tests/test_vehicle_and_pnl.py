@@ -28,7 +28,7 @@ def db_session():
 def test_vehicle_revenue_summary_nets_penalty(db_session):
     month = "May-2026"
     db_session.add(TripDataTerminal3(cab_no="DL1AA1111", ownership="Other", cab_type="Sedan", trip_cost=50000, month=month))
-    db_session.add(TripDataAIAA(cab_no="DL1AA1111", ownership="Other", cab_type="SUV", trip_cost=30000, month=month))
+    db_session.add(TripDataAIAA(una="AIAA-1", cab_no="DL1AA1111", ownership="Other", cab_type="SUV", trip_cost=30000, month=month))
     db_session.add(PenaltyVehicleWise(vehicle_no="DL1AA1111", amount=2000, entity="T-3", month=month))
     db_session.add(PenaltyVehicleWise(vehicle_no="DL1AA1111", amount=1000, entity="AIAA", month=month))
     db_session.commit()
@@ -46,7 +46,7 @@ def test_vehicle_revenue_summary_nets_penalty(db_session):
 def test_pnl_includes_auto_calculated_mcd_toll_line(db_session):
     month = "May-2026"
     db_session.add(TripDataTerminal3(cab_no="DL1AA1111", trip_cost=10000, toll_amount=500, month=month))
-    db_session.add(TripDataAIAA(cab_no="DL1BB2222", trip_cost=5000, toll_amount=300, month=month))
+    db_session.add(TripDataAIAA(una="AIAA-1", cab_no="DL1BB2222", trip_cost=5000, toll_amount=300, month=month))
     db_session.add(Sundries(vehicle_no="DL1AA1111", mcd=2000, month=month))
     db_session.add(Expense(month=month, fuel=1000, drivers_salaries=2000))
     db_session.commit()

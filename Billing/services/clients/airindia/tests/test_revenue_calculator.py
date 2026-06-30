@@ -33,7 +33,7 @@ def test_revenue_summary_basic(db_session):
     db_session.add(PenaltyVehicleWise(vehicle_no="DL1AA1111", amount=1000, entity="T-3", month=month))
     db_session.add(ManualInput(month=month, employee_penalty_t3=500, employee_penalty_aiaa=300))
 
-    db_session.add(TripDataAIAA(cab_no="DL1BB2222", ownership="DNP Own", trip_cost=80000, toll_amount=1500, month=month))
+    db_session.add(TripDataAIAA(una="AIAA-1", cab_no="DL1BB2222", ownership="DNP Own", trip_cost=80000, toll_amount=1500, month=month))
     db_session.add(PenaltyVehicleWise(vehicle_no="DL1BB2222", amount=700, entity="AIAA", month=month))
     db_session.commit()
 
@@ -64,7 +64,7 @@ def test_mcd_not_duplicated_into_aiaa(db_session):
     """MCD is T-3 only and must not leak into AIAA's total."""
     month = "May-2026"
     db_session.add(Sundries(vehicle_no="DL1AA1111", mcd=9999, month=month))
-    db_session.add(TripDataAIAA(cab_no="DL1BB2222", trip_cost=1000, toll_amount=0, month=month))
+    db_session.add(TripDataAIAA(una="AIAA-1", cab_no="DL1BB2222", trip_cost=1000, toll_amount=0, month=month))
     db_session.commit()
 
     result = calculate_revenue_summary(db_session, month)
