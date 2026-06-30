@@ -9,7 +9,7 @@ from app.database import Base
 
 
 class SpotRental(Base):
-    __tablename__ = "spot_rental"
+    __tablename__ = "agilent_spot_rental"
 
     id = Column(Integer, primary_key=True, index=True)
 

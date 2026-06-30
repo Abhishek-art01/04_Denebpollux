@@ -10,7 +10,7 @@ from app.database import Base
 
 
 class TripData(Base):
-    __tablename__ = "trip_data"
+    __tablename__ = "agilent_trip_data"
 
     id = Column(Integer, primary_key=True, index=True)
     plan_id = Column(String, nullable=True)

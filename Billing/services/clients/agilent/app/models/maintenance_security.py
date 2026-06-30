@@ -9,7 +9,7 @@ from app.database import Base
 
 
 class MaintenanceSecurity(Base):
-    __tablename__ = "maintenance_security"
+    __tablename__ = "agilent_maintenance_security"
 
     id = Column(Integer, primary_key=True, index=True)
     dated = Column(Date, nullable=True)

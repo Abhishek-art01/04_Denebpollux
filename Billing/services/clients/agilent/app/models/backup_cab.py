@@ -9,7 +9,7 @@ from app.database import Base
 
 
 class BackupCab(Base):
-    __tablename__ = "backup_cab"
+    __tablename__ = "agilent_backup_cab"
 
     id = Column(Integer, primary_key=True, index=True)
     date = Column(Date, nullable=True)

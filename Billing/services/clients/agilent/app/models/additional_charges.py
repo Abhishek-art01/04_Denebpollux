@@ -8,7 +8,7 @@ from app.database import Base
 
 
 class AdditionalCharges(Base):
-    __tablename__ = "additional_charges"
+    __tablename__ = "agilent_additional_charges"
 
     id = Column(Integer, primary_key=True, index=True)
     description = Column(String, nullable=False, index=True)

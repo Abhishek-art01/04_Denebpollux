@@ -8,10 +8,10 @@ import { useDashboard } from "../../context/DashboardContext.jsx";
 import { uploadSheet } from "../../api/uploads.js";
 
 const AGILENT_UPLOAD_LABELS = {
-  childCab: "Agilent_Child_Cab",
-  tripData: "Agilent_TripData",
-  backupCab: "Agilent_BackupCabs",
-  maintenanceSecurity: "Agilent Maintainence",
+  childCab: "Agilent Child Cab",
+  tripData: "Agilent Trip Data",
+  backupCab: "Agilent Backup Cabs",
+  maintenanceSecurity: "Agilent Maintainence Cabs",
   additionalCharges: "Agilent Addtional Charges",
 };
 

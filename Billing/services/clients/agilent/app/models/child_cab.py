@@ -9,7 +9,7 @@ from app.database import Base
 
 
 class ChildCab(Base):
-    __tablename__ = "child_cab"
+    __tablename__ = "agilent_child_cab"
 
     id = Column(Integer, primary_key=True, index=True)
     s_no = Column(String, nullable=True)
