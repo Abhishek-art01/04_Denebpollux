@@ -6,7 +6,6 @@ import Navbar from "./components/layout/Navbar.jsx";
 import Sidebar from "./components/layout/Sidebar.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import UploadPage from "./pages/UploadPage.jsx";
-import CompliancePage from "./pages/CompliancePage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 
 function BillingShell() {
@@ -35,7 +34,6 @@ function BillingShell() {
             <Routes>
               <Route path="/" element={<DashboardPage />} />
               <Route path="/upload" element={<UploadPage />} />
-              <Route path="/compliance" element={<CompliancePage />} />
               <Route path="/login" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
