@@ -20,6 +20,14 @@ const EMPTY_ENTRY = {
   note: "",
 };
 
+const NAV_ITEMS = [
+  { id: "dashboard", label: "Dashboard", icon: "dashboard" },
+  { id: "agilent", label: "Agilent", icon: "science" },
+  { id: "airindia", label: "Air India", icon: "flight" },
+  { id: "tata", label: "Tata", icon: "business_center" },
+  { id: "others", label: "Other Vendors", icon: "groups" },
+];
+
 function currency(value) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -52,10 +60,25 @@ function calculate(entry) {
   };
 }
 
+function EmptyClientView({ label }) {
+  return (
+    <section className="placeholder-panel">
+      <span className="material-symbols-outlined" aria-hidden="true">pending_actions</span>
+      <div>
+        <span className="eyebrow">Vendor Payments</span>
+        <h2>{label}</h2>
+        <p>Payment rules for this client can be added here.</p>
+      </div>
+    </section>
+  );
+}
+
 function App() {
   const [entry, setEntry] = useState(EMPTY_ENTRY);
   const [entries, setEntries] = useState(loadEntries);
   const [query, setQuery] = useState("");
+  const [activeSection, setActiveSection] = useState("dashboard");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const activeTotal = calculate(entry);
 
@@ -137,40 +160,75 @@ function App() {
     URL.revokeObjectURL(url);
   }
 
-  return (
-    <main className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <span className="material-symbols-outlined" aria-hidden="true">payments</span>
-          <div>
-            <strong>Vendor Payments</strong>
-            <span>Accounts</span>
+  const activeNavItem = NAV_ITEMS.find((item) => item.id === activeSection) || NAV_ITEMS[0];
+  const dashboardTotal = entries.reduce((total, item) => total + calculate(item).net, 0);
+
+  function renderDashboard() {
+    return (
+      <>
+        <section className="summary-grid" aria-label="Payment summary">
+          <div className="metric">
+            <span>Total Payable</span>
+            <strong>{currency(dashboardTotal)}</strong>
           </div>
-        </div>
-
-        <nav className="nav-list" aria-label="Payment sections">
-          <button className="nav-item active" type="button">
-            <span className="material-symbols-outlined" aria-hidden="true">receipt_long</span>
-            Register
-          </button>
-          <button className="nav-item" type="button">
-            <span className="material-symbols-outlined" aria-hidden="true">rule</span>
-            Agilent Rules
-          </button>
-        </nav>
-      </aside>
-
-      <section className="workspace">
-        <header className="topbar">
-          <div>
-            <span className="eyebrow">Deneb & Pollux</span>
-            <h1>Vendor Payment Register</h1>
+          <div className="metric">
+            <span>Saved Payments</span>
+            <strong>{entries.length}</strong>
           </div>
-          <button className="icon-button" type="button" onClick={exportCsv} title="Export CSV" disabled={!entries.length}>
-            <span className="material-symbols-outlined" aria-hidden="true">download</span>
-          </button>
-        </header>
+          <div className="metric">
+            <span>Active Client</span>
+            <strong>Agilent</strong>
+          </div>
+        </section>
 
+        <section className="dashboard-grid">
+          <article className="dashboard-panel">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">Clients</span>
+                <h2>Payment sections</h2>
+              </div>
+            </div>
+            <div className="client-list">
+              {NAV_ITEMS.slice(1).map((item) => (
+                <button className="client-card" type="button" key={item.id} onClick={() => setActiveSection(item.id)}>
+                  <span className="material-symbols-outlined" aria-hidden="true">{item.icon}</span>
+                  <div>
+                    <strong>{item.label}</strong>
+                    <small>{item.id === "agilent" ? "Ertiga rules active" : "Rules pending"}</small>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </article>
+
+          <article className="dashboard-panel">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">Agilent</span>
+                <h2>Current rules</h2>
+              </div>
+            </div>
+            <div className="rule-list compact">
+              {RATE_RULES.map((rule) => (
+                <article className="rule-card" key={rule.id}>
+                  <div>
+                    <strong>{rule.zone}</strong>
+                    <span>{rule.range}</span>
+                  </div>
+                  <b>{currency(rule.rate)}</b>
+                </article>
+              ))}
+            </div>
+          </article>
+        </section>
+      </>
+    );
+  }
+
+  function renderAgilent() {
+    return (
+      <>
         <section className="summary-grid" aria-label="Payment summary">
           <div className="metric">
             <span>Current Entry</span>
@@ -321,6 +379,70 @@ function App() {
               </tbody>
             </table>
           </div>
+        </section>
+      </>
+    );
+  }
+
+  return (
+    <main className="portal-shell">
+      <aside className={`sidebar ${sidebarCollapsed ? "collapsed" : ""}`}>
+        <div className="sidebar-header">
+          <button className="sidebar-menu-button" type="button" onClick={() => setSidebarCollapsed((current) => !current)} title="Toggle sidebar">
+            <span className="material-symbols-outlined" aria-hidden="true">menu</span>
+          </button>
+          <div className="sidebar-identity">
+            <div className="sidebar-avatar">VP</div>
+            <div className="sidebar-company">Vendor Payments</div>
+          </div>
+        </div>
+
+        <nav className="sidebar-nav" aria-label="Vendor payment navigation">
+          <div className="sidebar-section-label">Accounts</div>
+          {NAV_ITEMS.map((item) => (
+            <button
+              className={`sidebar-link ${activeSection === item.id ? "active" : ""}`}
+              key={item.id}
+              type="button"
+              onClick={() => setActiveSection(item.id)}
+              title={item.label}
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">{item.icon}</span>
+              <span className="sidebar-text">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="sidebar-user">
+            <span className="material-symbols-outlined" aria-hidden="true">account_balance_wallet</span>
+            <span>Accounts Desk</span>
+          </div>
+        </div>
+      </aside>
+
+      <section className="workspace-shell">
+        <header className="navbar">
+          <div className="navbar-left">
+            <div className="navbar-brand">
+              <span className="brand-name">{activeNavItem.label}</span>
+              <span className="brand-sub">Vendor Payments</span>
+            </div>
+          </div>
+          <div className="navbar-controls">
+            <button className="download-button" type="button" onClick={exportCsv} disabled={!entries.length}>
+              <span className="material-symbols-outlined" aria-hidden="true">download</span>
+              <span>Export CSV</span>
+            </button>
+          </div>
+        </header>
+
+        <section className="main-content">
+          {activeSection === "dashboard" && renderDashboard()}
+          {activeSection === "agilent" && renderAgilent()}
+          {activeSection === "airindia" && <EmptyClientView label="Air India" />}
+          {activeSection === "tata" && <EmptyClientView label="Tata" />}
+          {activeSection === "others" && <EmptyClientView label="Other Vendors" />}
         </section>
       </section>
     </main>
