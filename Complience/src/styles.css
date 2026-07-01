@@ -1,0 +1,373 @@
+:root {
+  --ink-900: #111827;
+  --ink-700: #374151;
+  --ink-500: #6b7280;
+  --ink-300: #c7ced8;
+  --surface-0: #f4f7fb;
+  --surface-1: #ffffff;
+  --surface-2: #eef3f8;
+  --line: #dce3eb;
+  --accent: #0f766e;
+  --accent-dark: #115e59;
+  --danger: #b42318;
+  --danger-soft: #fee4e2;
+  --shadow: 0 1px 2px rgba(17, 24, 39, 0.06), 0 10px 26px rgba(17, 24, 39, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--surface-0);
+  color: var(--ink-900);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-size: 20px;
+  line-height: 1;
+  font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+}
+
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.login-panel {
+  width: min(440px, 100%);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 28px;
+}
+
+.login-panel h1,
+.topbar h1,
+.panel-heading h2 {
+  margin: 4px 0 0;
+}
+
+.login-panel p {
+  margin: 8px 0 22px;
+  color: var(--ink-500);
+}
+
+.eyebrow {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.login-form,
+.vehicle-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--ink-700);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+input {
+  height: 39px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--ink-900);
+  padding: 0 11px;
+  outline: none;
+}
+
+input:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+.primary-button,
+.secondary-button,
+.icon-button {
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.primary-button {
+  height: 39px;
+  padding: 0 16px;
+  background: var(--accent);
+  color: white;
+}
+
+.primary-button:hover {
+  background: var(--accent-dark);
+}
+
+.primary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.secondary-button {
+  height: 39px;
+  padding: 0 14px;
+  background: var(--surface-2);
+  color: var(--ink-900);
+  border: 1px solid var(--line);
+}
+
+.icon-button {
+  width: 39px;
+  height: 39px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--surface-2);
+  color: var(--ink-700);
+}
+
+.icon-button:hover {
+  background: var(--line);
+}
+
+.icon-button.small {
+  width: 30px;
+  height: 30px;
+}
+
+.icon-button.danger {
+  color: var(--danger);
+}
+
+.icon-button.danger:hover {
+  background: var(--danger-soft);
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 24px;
+  background: var(--ink-900);
+  color: white;
+}
+
+.sidebar span {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-300);
+  font-size: 13px;
+}
+
+.brand-mark {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #ccfbf1;
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.workspace {
+  min-width: 0;
+  padding: 28px 32px 48px;
+}
+
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.topbar-actions,
+.table-actions,
+.form-actions,
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.user-chip {
+  height: 39px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-1);
+  color: var(--ink-700);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.summary-strip div,
+.vehicle-form,
+.table-panel {
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.summary-strip div {
+  padding: 16px;
+}
+
+.summary-strip span {
+  display: block;
+  color: var(--ink-500);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.summary-strip strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 22px;
+}
+
+.vehicle-form,
+.table-panel {
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.panel-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.form-error {
+  padding: 9px 11px;
+  border-radius: 6px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.form-error.inline {
+  padding: 0;
+  background: transparent;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th {
+  text-align: left;
+  color: var(--ink-500);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 9px 10px;
+  border-bottom: 2px solid var(--ink-900);
+  white-space: nowrap;
+}
+
+td {
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+tbody tr:hover {
+  background: var(--surface-2);
+}
+
+.strong {
+  font-weight: 800;
+}
+
+.empty-cell {
+  color: var(--ink-500);
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    min-height: auto;
+  }
+
+  .workspace {
+    padding: 20px;
+  }
+
+  .topbar,
+  .panel-heading {
+    flex-direction: column;
+  }
+
+  .summary-strip,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
