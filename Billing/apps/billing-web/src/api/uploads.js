@@ -1,4 +1,5 @@
 import client, { clientPath } from "./client.js";
+import * as XLSX from "xlsx";
 
 const UPLOAD_ENDPOINTS = {
   tripData: "/upload/trip-data",
@@ -17,11 +18,20 @@ export async function uploadSheet(sheetKey, file) {
   const endpoint = UPLOAD_ENDPOINTS[sheetKey];
   if (!endpoint) throw new Error(`Unknown sheet type: ${sheetKey}`);
 
-  const formData = new FormData();
-  formData.append("file", file);
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+  const firstSheetName = workbook.SheetNames[0];
+  if (!firstSheetName) throw new Error("Uploaded workbook does not contain any sheets");
 
-  const { data } = await client.post(clientPath(endpoint), formData, {
-    headers: { "Content-Type": "multipart/form-data" },
+  const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], {
+    defval: null,
+    raw: false,
+  });
+
+  const { data } = await client.post(clientPath(endpoint), {
+    file_name: file.name,
+    sheet_name: firstSheetName,
+    rows,
   });
   return data;
 }

@@ -9,7 +9,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://denebpollux-billing-gateway.onrender.com/api/$1"
+      "destination": "https://denebpollux-billing-api.denebpollux-billing.workers.dev/api/$1"
     },
     {
       "source": "/(.*)",

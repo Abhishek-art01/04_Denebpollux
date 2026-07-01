@@ -64,22 +64,26 @@ npm run dev
 Open http://localhost:5173. The Vite dev server proxies `/api/*` to the
 backend at `http://localhost:8000` (see `vite.config.js`).
 
-## Deploy: Vercel frontend + Render backend
+## Deploy: Vercel frontend + Cloudflare Worker backend
 
-### Render backend
+### Cloudflare Worker backend
 
-Deploy `render.yaml` from this app directory, or create a Render Web Service
-manually with:
+The active production backend is the shared Worker at
+`Billing/services/cloudflare-worker`.
 
-- Root directory: `backend`
-- Build command: `pip install -r requirements.txt`
-- Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-- Health check path: `/api/health`
+Deploy it with:
 
-Set these Render environment variables:
+```bash
+cd Billing/services/cloudflare-worker
+npm run deploy
+```
 
-- `DATABASE_URL` = your Supabase/PostgreSQL connection string
-- `FRONTEND_ORIGIN` = your Vercel site origin, e.g. `https://billing-web-ashy.vercel.app`
+Required Worker secrets:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `TOKEN_SECRET`
+- `AUTH_USERS`
 
 ### Vercel frontend
 
@@ -87,8 +91,7 @@ Vercel reads `vercel.json` and builds the Vite app from the frontend app directo
 
 Set this Vercel environment variable:
 
-- `VITE_API_BASE_URL` = your Render API origin plus `/api`, e.g.
-  `https://agilent-billing-api.onrender.com/api`
+- `VITE_API_BASE_URL` = `/api`
 
 After changing `VITE_API_BASE_URL`, trigger a new Vercel deploy because Vite
 injects environment variables at build time.

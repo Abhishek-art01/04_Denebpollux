@@ -1,22 +1,16 @@
 # 04_Denebpollux
 
-Billing is now organized around one shared web app, one API gateway, one auth
-backend, and multiple per-client billing backends.
+Billing is now organized around one shared web app and one Cloudflare Worker
+backend.
 
 ```text
 Billing Web App
       |
       v
-API Gateway
-      |
-      +--> Auth Backend
-      |
-      +--> Agilent Billing Backend
-      |
-      +--> Air India Billing Backend
+Cloudflare Worker Billing API
       |
       v
-Common PostgreSQL database
+Supabase/PostgreSQL database
 ```
 
 ## Run the combined billing stack
@@ -46,13 +40,13 @@ Set `TOKEN_SECRET` and `AUTH_USERS` in your environment for real deployments.
 
 ## Routing model
 
-The frontend calls only the gateway:
+The frontend calls only the API base URL:
 
 - Login: `/api/auth/login`
 - Client APIs: `/api/clients/{client}/...`
 
-The gateway validates the bearer token with the auth backend, then forwards the
-request to the matching client backend configured in `CLIENT_BACKENDS`.
+In production, Vercel rewrites `/api/*` to the Cloudflare Worker. The Worker
+handles auth, client APIs, uploads, and report RPC calls.
 
 ## Common database
 
@@ -81,24 +75,22 @@ Billing/
 │   ├── clients/                  # formula and upload references
 │   └── legacy/                   # old standalone compose files
 ├── infra/
-│   └── render/                   # deploy descriptors
+│   └── supabase/                 # database functions for Worker reports
 └── archive/                      # non-active legacy/local artifacts
 ```
 
-## Render backend hosting
+## Cloudflare Worker Backend
 
-The root [render.yaml](/workspaces/04_Denebpollux/render.yaml) hosts all billing
-backends on Render:
-
-- `denebpollux-billing-gateway`
-- `denebpollux-billing-auth`
-- `denebpollux-billing-agilent-api`
-- `denebpollux-billing-airindia-api`
-- `denebpollux-billing-db`
-
-After the Blueprint is created, set `FRONTEND_ORIGIN` to the deployed frontend
-URL and set `AUTH_USERS` to your real login users. The frontend should use:
+The active production backend is the Cloudflare Worker in
+[Billing/services/cloudflare-worker](/workspaces/04_Denebpollux/Billing/services/cloudflare-worker):
 
 ```text
-VITE_API_BASE_URL=https://denebpollux-billing-gateway.onrender.com/api
+https://denebpollux-billing-api.denebpollux-billing.workers.dev/api
+```
+
+Deploy from the Worker directory:
+
+```bash
+cd Billing/services/cloudflare-worker
+npm run deploy
 ```

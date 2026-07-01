@@ -1,23 +1,17 @@
 # Billing
 
-One shared Billing Web App sits behind an API gateway. The gateway validates
-sessions with the auth service and routes client-specific requests to the
-matching billing backend.
+One shared Billing Web App sits behind a Cloudflare Worker API. The Worker
+validates sessions and routes client-specific requests to Supabase tables and
+report RPC functions.
 
 ```text
 apps/billing-web
       |
       v
-services/api-gateway
-      |
-      +--> services/auth
-      |
-      +--> services/clients/agilent
-      |
-      +--> services/clients/airindia
+services/cloudflare-worker
       |
       v
-common PostgreSQL database
+Supabase/PostgreSQL database
 ```
 
 ## Directory Layout
@@ -27,6 +21,7 @@ Billing/
 ├── apps/
 │   └── billing-web/              # single React frontend
 ├── services/
+│   ├── cloudflare-worker/        # production API backend
 │   ├── api-gateway/              # public API entrypoint
 │   ├── auth/                     # login/session service
 │   └── clients/
@@ -36,7 +31,7 @@ Billing/
 │   ├── clients/                  # client formula/reference docs
 │   └── legacy/                   # old standalone compose files
 ├── infra/
-│   └── render/                   # deployment descriptors
+│   └── supabase/                 # database functions for Worker reports
 ├── archive/
 │   ├── deploy-state/             # local deploy metadata, not active source
 │   └── legacy-frontends/         # archived duplicate frontend code
@@ -61,43 +56,27 @@ Default local login:
 - Username: `admin`
 - Password: `admin123`
 
-## Host Backends On Render
+## Host Backend On Cloudflare
 
-Use the root `render.yaml` Blueprint to create all backend infrastructure:
-
-```text
-denebpollux-billing-gateway
-denebpollux-billing-auth
-denebpollux-billing-agilent-api
-denebpollux-billing-airindia-api
-```
-
-Render deploys:
-
-- API Gateway from `Billing/services/api-gateway`
-- Auth backend from `Billing/services/auth`
-- Agilent backend from `Billing/services/clients/agilent`
-- Air India backend from `Billing/services/clients/airindia`
-- One external PostgreSQL database, with client tables split by `DB_SCHEMA`
-
-Set these Render environment values after creating the Blueprint:
-
-- `FRONTEND_ORIGIN`: your frontend origin, for example `https://billing-web-ashy.vercel.app`
-- `AUTH_USERS`: comma-separated users, for example `admin:strong-password:Admin`
-- `DATABASE_URL`: external PostgreSQL connection string for each client API
-
-The gateway defaults assume Render creates these URLs:
+The active production backend is the Cloudflare Worker:
 
 ```text
-https://denebpollux-billing-auth.onrender.com
-https://denebpollux-billing-agilent-api.onrender.com
-https://denebpollux-billing-airindia-api.onrender.com
+https://denebpollux-billing-api.denebpollux-billing.workers.dev/api
 ```
 
-If Render changes a service URL, update the gateway env vars:
+Deploy it with Wrangler:
 
-- `AUTH_BACKEND_URL`
-- `CLIENT_BACKENDS`
+```bash
+cd services/cloudflare-worker
+npm run deploy
+```
+
+Required Worker secrets:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `TOKEN_SECRET`
+- `AUTH_USERS`
 
 The deployed Vercel frontend should call its same-origin API proxy:
 
@@ -105,5 +84,5 @@ The deployed Vercel frontend should call its same-origin API proxy:
 VITE_API_BASE_URL=/api
 ```
 
-Vercel rewrites `/api/*` to the Render gateway defined in
+Vercel rewrites `/api/*` to the Cloudflare Worker defined in
 `Billing/apps/billing-web/vercel.json`.

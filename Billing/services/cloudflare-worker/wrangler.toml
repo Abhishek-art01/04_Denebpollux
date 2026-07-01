@@ -1,0 +1,15 @@
+name = "denebpollux-billing-api"
+main = "src/index.js"
+compatibility_date = "2026-07-01"
+workers_dev = true
+preview_urls = true
+
+[vars]
+FRONTEND_ORIGIN = "http://localhost:5173,https://billing-web-ashy.vercel.app"
+TOKEN_TTL_SECONDS = "43200"
+
+# Set secrets with:
+# wrangler secret put SUPABASE_URL
+# wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+# wrangler secret put TOKEN_SECRET
+# wrangler secret put AUTH_USERS
