@@ -84,6 +84,9 @@ export default function Navbar() {
           <NavLink to="/" end className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
             Dashboard
           </NavLink>
+          <NavLink to="/compliance" className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
+            Compliance
+          </NavLink>
           <div className="upload-select-wrap">
             <label className="sr-only" htmlFor="header-upload-select">Upload Data</label>
             <select

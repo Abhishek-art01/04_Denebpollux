@@ -369,6 +369,27 @@ const SHEET_SPECS = {
   },
 };
 
+const VEHICLE_VISIBLE_FIELDS = [
+  "id",
+  "vehicle_number",
+  "ownership",
+  "model",
+  "site",
+  "manager",
+  "client",
+  "created_at",
+  "updated_at",
+];
+
+const VEHICLE_EDITABLE_FIELDS = [
+  "vehicle_number",
+  "ownership",
+  "model",
+  "site",
+  "manager",
+  "client",
+];
+
 function json(data, status = 200, headers = {}) {
   return new Response(JSON.stringify(data), {
     status,
@@ -666,6 +687,67 @@ function toText(value) {
   return text || null;
 }
 
+function deriveVehicleId(vehicleNumber) {
+  const text = toText(vehicleNumber);
+  if (!text) throw statusError(400, "Vehicle number is required");
+  const digits = text.match(/\d+/g)?.join("");
+  return digits || text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function sanitizeVehiclePayload(payload, { requireVehicleNumber = false } = {}) {
+  const record = {};
+  for (const field of VEHICLE_EDITABLE_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(payload, field)) {
+      record[field] = toText(payload[field]);
+    }
+  }
+  if (requireVehicleNumber && !record.vehicle_number) {
+    throw statusError(400, "Vehicle number is required");
+  }
+  return record;
+}
+
+async function listVehicles(env) {
+  const rows = await supabaseFetch(
+    env,
+    "public",
+    `/vehicles?select=${VEHICLE_VISIBLE_FIELDS.join(",")}&order=vehicle_number.asc`,
+  );
+  return { vehicles: rows };
+}
+
+async function createVehicle(env, payload) {
+  const record = sanitizeVehiclePayload(payload, { requireVehicleNumber: true });
+  record.id = deriveVehicleId(record.vehicle_number);
+  const rows = await supabaseFetch(env, "public", "/vehicles", {
+    method: "POST",
+    headers: { prefer: "return=representation" },
+    body: JSON.stringify([record]),
+  });
+  return Object.fromEntries(VEHICLE_VISIBLE_FIELDS.map((field) => [field, rows[0]?.[field]]));
+}
+
+async function updateVehicle(env, id, payload) {
+  const record = sanitizeVehiclePayload(payload);
+  if (!Object.keys(record).length) throw statusError(400, "No editable vehicle fields provided");
+  record.updated_at = new Date().toISOString();
+  const rows = await supabaseFetch(env, "public", `/vehicles?id=eq.${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { prefer: "return=representation" },
+    body: JSON.stringify(record),
+  });
+  if (!rows[0]) throw statusError(404, "Vehicle not found");
+  return Object.fromEntries(VEHICLE_VISIBLE_FIELDS.map((field) => [field, rows[0][field]]));
+}
+
+async function deleteVehicle(env, id) {
+  await supabaseFetch(env, "public", `/vehicles?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { prefer: "return=minimal" },
+  });
+  return { deleted: true };
+}
+
 function normalizeUploadRows(spec, rawRows) {
   if (!Array.isArray(rawRows)) throw statusError(400, "Upload payload must include rows array");
   const warnings = new Set();
@@ -793,6 +875,26 @@ async function handleClient(request, env, segments, url) {
   throw statusError(404, "Client route not found");
 }
 
+async function handleVehicles(request, env, segments) {
+  await requireSession(request, env);
+  const id = decodeURIComponent(segments[1] || "");
+
+  if (request.method === "GET" && !id) {
+    return json(await listVehicles(env));
+  }
+  if (request.method === "POST" && !id) {
+    return json(await createVehicle(env, await request.json()), 201);
+  }
+  if (request.method === "PATCH" && id) {
+    return json(await updateVehicle(env, id, await request.json()));
+  }
+  if (request.method === "DELETE" && id) {
+    return json(await deleteVehicle(env, id));
+  }
+
+  throw statusError(404, "Vehicle route not found");
+}
+
 async function route(request, env) {
   const url = new URL(request.url);
   const segments = url.pathname.replace(/^\/api\/?/, "").replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
@@ -802,6 +904,7 @@ async function route(request, env) {
   if (segments[0] === "wake") return json({ status: "ok", services: [] });
   if (segments[0] === "auth") return handleAuth(request, env, segments);
   if (segments[0] === "clients") return handleClient(request, env, segments, url);
+  if (segments[0] === "vehicles") return handleVehicles(request, env, segments);
   throw statusError(404, "Route not found");
 }
 
