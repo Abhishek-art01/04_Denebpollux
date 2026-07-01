@@ -1,6 +1,6 @@
 const CLIENT_CONFIG = {
   agilent: {
-    schema: "agilent",
+    schema: "public",
     manualTable: "manual_inputs",
     expenseTable: "expenses",
     monthTables: [
@@ -23,7 +23,7 @@ const CLIENT_CONFIG = {
     },
   },
   airindia: {
-    schema: "airindia",
+    schema: "public",
     manualTable: "airindia_manual_inputs",
     expenseTable: "airindia_expenses",
     monthTables: [
@@ -47,12 +47,19 @@ const CLIENT_CONFIG = {
 };
 
 const REPORT_RPC = {
-  "revenue-summary": "billing_report_revenue_summary",
-  "revenue-mix": "billing_report_revenue_mix",
-  "vehicle-wise-breakup": "billing_report_vehicle_wise_breakup",
-  "ownership-breakup": "billing_report_ownership_breakup",
-  "vehicle-revenue-summary": "billing_report_vehicle_revenue_summary",
-  "pnl-summary": "billing_report_pnl_summary",
+  agilent: {
+    "revenue-summary": "billing_report_agilent_revenue_summary",
+    "revenue-mix": "billing_report_agilent_revenue_mix",
+    "vehicle-wise-breakup": "billing_report_agilent_vehicle_wise_breakup",
+    "ownership-breakup": "billing_report_agilent_ownership_breakup",
+    "vehicle-revenue-summary": "billing_report_agilent_vehicle_revenue_summary",
+    "pnl-summary": "billing_report_agilent_pnl_summary",
+  },
+  airindia: {
+    "revenue-summary": "billing_report_airindia_revenue_summary",
+    "vehicle-revenue-summary": "billing_report_airindia_vehicle_revenue_summary",
+    "pnl-summary": "billing_report_airindia_pnl_summary",
+  },
 };
 
 const SHEET_SPECS = {
@@ -678,7 +685,7 @@ async function handleClient(request, env, segments, url) {
 
   if (request.method === "GET" && area === "reports") {
     const reportType = segments[3];
-    const fnName = REPORT_RPC[reportType];
+    const fnName = REPORT_RPC[clientId]?.[reportType];
     if (!fnName) throw statusError(404, `Unknown report: ${reportType}`);
     const month = url.searchParams.get("month");
     if (!month) throw statusError(400, "Missing month");

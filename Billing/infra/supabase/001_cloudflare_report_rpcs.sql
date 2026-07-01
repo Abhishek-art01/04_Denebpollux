@@ -1,7 +1,4 @@
-create schema if not exists agilent;
-create schema if not exists airindia;
-
-create or replace function agilent.billing_report_revenue_summary(client_id text, report_month text)
+create or replace function public.billing_report_agilent_revenue_summary(client_id text, report_month text)
 returns jsonb
 language plpgsql
 stable
@@ -25,32 +22,32 @@ declare
   net_amount_payable numeric := 0;
   total_revenue numeric := 0;
 begin
-  select coalesce(sum(taxable_amount), 0) into total_trip_amount from agilent.agilent_trip_data where month = report_month;
-  select coalesce(sum(trip_cost), 0) into maintenance_charges from agilent.agilent_maintenance_security where month = report_month;
-  select coalesce(sum(trip_cost), 0) into creche_duty_charges from agilent.agilent_child_cab where month = report_month;
-  select coalesce(sum(trip_cost), 0) into odd_hours_cab_cost from agilent.agilent_backup_cab where month = report_month;
+  select coalesce(sum(taxable_amount), 0) into total_trip_amount from public.agilent_trip_data where month = report_month;
+  select coalesce(sum(trip_cost), 0) into maintenance_charges from public.agilent_maintenance_security where month = report_month;
+  select coalesce(sum(trip_cost), 0) into creche_duty_charges from public.agilent_child_cab where month = report_month;
+  select coalesce(sum(trip_cost), 0) into odd_hours_cab_cost from public.agilent_backup_cab where month = report_month;
   select coalesce((
-    select amount_recovered_from_employees from agilent.manual_inputs where month = report_month limit 1
+    select amount_recovered_from_employees from public.manual_inputs where month = report_month limit 1
   ), 0) into amount_recovered;
 
   select coalesce(sum(taxable_amt), 0) into manpower_charges
-  from agilent.agilent_additional_charges
+  from public.agilent_additional_charges
   where month = report_month and coalesce(description, '') ilike '%manpower%';
 
   select coalesce(sum(taxable_amt), 0) into technology_cost_recovery
-  from agilent.agilent_additional_charges
+  from public.agilent_additional_charges
   where month = report_month and (coalesce(description, '') ilike '%technology%' or coalesce(description, '') ilike '%tech cost%');
 
   select coalesce(sum(taxable_amt), 0) into dashcam_subscription_recovery
-  from agilent.agilent_additional_charges
+  from public.agilent_additional_charges
   where month = report_month and coalesce(description, '') ilike '%dashcam%';
 
   select coalesce(sum(taxable_amt), 0) into razorpay_fee_recovery
-  from agilent.agilent_additional_charges
+  from public.agilent_additional_charges
   where month = report_month and coalesce(description, '') ilike '%razorpay%';
 
   select coalesce(sum(without_gst_total_amount), 0) into spot_rental_revenue
-  from agilent.agilent_spot_rental where month = report_month;
+  from public.agilent_spot_rental where month = report_month;
 
   grand_total_billable := total_trip_amount + maintenance_charges + creche_duty_charges + odd_hours_cab_cost;
   taxable_trip_amount := grand_total_billable - amount_recovered;
@@ -102,13 +99,13 @@ begin
 end;
 $$;
 
-create or replace function agilent.billing_report_revenue_mix(client_id text, report_month text)
+create or replace function public.billing_report_agilent_revenue_mix(client_id text, report_month text)
 returns jsonb
 language sql
 stable
 as $$
   with s as (
-    select agilent.billing_report_revenue_summary(client_id, report_month) data
+    select public.billing_report_agilent_revenue_summary(client_id, report_month) data
   ),
   items as (
     select * from (
@@ -134,7 +131,7 @@ as $$
   from items;
 $$;
 
-create or replace function agilent.billing_report_vehicle_wise_breakup(client_id text, report_month text)
+create or replace function public.billing_report_agilent_vehicle_wise_breakup(client_id text, report_month text)
 returns jsonb
 language sql
 stable
@@ -145,19 +142,19 @@ as $$
       sum(child_cab_amount) child_cab_amount, sum(backup_cabs_amount) backup_cabs_amount
     from (
       select vehicle_number, ownership, coalesce(sum(taxable_amount), 0) trip_data_amount, 0::numeric spot_rental, 0::numeric maintenance_veh_amount, 0::numeric child_cab_amount, 0::numeric backup_cabs_amount
-      from agilent.agilent_trip_data where month = report_month group by vehicle_number, ownership
+      from public.agilent_trip_data where month = report_month group by vehicle_number, ownership
       union all
       select vehicle_number, ownership, 0, coalesce(sum(without_gst_total_amount), 0), 0, 0, 0
-      from agilent.agilent_spot_rental where month = report_month group by vehicle_number, ownership
+      from public.agilent_spot_rental where month = report_month group by vehicle_number, ownership
       union all
       select vehicle_number, ownership, 0, 0, coalesce(sum(trip_cost), 0), 0, 0
-      from agilent.agilent_maintenance_security where month = report_month group by vehicle_number, ownership
+      from public.agilent_maintenance_security where month = report_month group by vehicle_number, ownership
       union all
       select vehicle_number, ownership, 0, 0, 0, coalesce(sum(trip_cost), 0), 0
-      from agilent.agilent_child_cab where month = report_month group by vehicle_number, ownership
+      from public.agilent_child_cab where month = report_month group by vehicle_number, ownership
       union all
       select vehicle_number, ownership, 0, 0, 0, 0, coalesce(sum(trip_cost), 0)
-      from agilent.agilent_backup_cab where month = report_month group by vehicle_number, ownership
+      from public.agilent_backup_cab where month = report_month group by vehicle_number, ownership
     ) source
     where vehicle_number is not null
     group by vehicle_number
@@ -202,13 +199,13 @@ as $$
   group by t.grand_total_trip_data, t.grand_total_spot_rental, t.grand_total_maintenance, t.grand_total_child_cab, t.grand_total_backup_cab, t.grand_total_overall;
 $$;
 
-create or replace function agilent.billing_report_ownership_breakup(client_id text, report_month text)
+create or replace function public.billing_report_agilent_ownership_breakup(client_id text, report_month text)
 returns jsonb
 language sql
 stable
 as $$
   with report as (
-    select agilent.billing_report_vehicle_wise_breakup(client_id, report_month) data
+    select public.billing_report_agilent_vehicle_wise_breakup(client_id, report_month) data
   ),
   rows as (
     select item->>'ownership' ownership, (item->>'grand_total')::numeric amount
@@ -234,7 +231,7 @@ as $$
   group by total.amount;
 $$;
 
-create or replace function agilent.billing_report_vehicle_revenue_summary(client_id text, report_month text)
+create or replace function public.billing_report_agilent_vehicle_revenue_summary(client_id text, report_month text)
 returns jsonb
 language sql
 stable
@@ -245,19 +242,19 @@ as $$
       sum(child_cab_amount) child_cab_amount, sum(backup_cabs_amount) backup_cabs_amount
     from (
       select vehicle_number, ownership, coalesce(sum(trip_cost), 0) trip_data_amount, 0::numeric spot_rental, 0::numeric maintenance_veh_amount, 0::numeric child_cab_amount, 0::numeric backup_cabs_amount
-      from agilent.agilent_trip_data where month = report_month group by vehicle_number, ownership
+      from public.agilent_trip_data where month = report_month group by vehicle_number, ownership
       union all
       select vehicle_number, ownership, 0, coalesce(sum(without_gst_total_amount), 0) - coalesce(sum(total_billing_items_amount), 0), 0, 0, 0
-      from agilent.agilent_spot_rental where month = report_month group by vehicle_number, ownership
+      from public.agilent_spot_rental where month = report_month group by vehicle_number, ownership
       union all
       select vehicle_number, ownership, 0, 0, coalesce(sum(trip_cost), 0), 0, 0
-      from agilent.agilent_maintenance_security where month = report_month group by vehicle_number, ownership
+      from public.agilent_maintenance_security where month = report_month group by vehicle_number, ownership
       union all
       select vehicle_number, ownership, 0, 0, 0, coalesce(sum(trip_cost), 0), 0
-      from agilent.agilent_child_cab where month = report_month group by vehicle_number, ownership
+      from public.agilent_child_cab where month = report_month group by vehicle_number, ownership
       union all
       select vehicle_number, ownership, 0, 0, 0, 0, coalesce(sum(trip_cost), 0)
-      from agilent.agilent_backup_cab where month = report_month group by vehicle_number, ownership
+      from public.agilent_backup_cab where month = report_month group by vehicle_number, ownership
     ) source
     where vehicle_number is not null
     group by vehicle_number
@@ -292,16 +289,16 @@ as $$
   group by t.grand_total_trip_data, t.grand_total_spot_rental, t.grand_total_maintenance, t.grand_total_child_cab, t.grand_total_backup_cab, t.grand_total_overall;
 $$;
 
-create or replace function agilent.billing_report_pnl_summary(client_id text, report_month text)
+create or replace function public.billing_report_agilent_pnl_summary(client_id text, report_month text)
 returns jsonb
 language sql
 stable
 as $$
   with s as (
-    select agilent.billing_report_revenue_summary(client_id, report_month) data
+    select public.billing_report_agilent_revenue_summary(client_id, report_month) data
   ),
   e as (
-    select * from agilent.expenses where month = report_month limit 1
+    select * from public.expenses where month = report_month limit 1
   ),
   items as (
     select * from (
@@ -334,7 +331,7 @@ as $$
   group by totals.total_revenue, totals.total_expenses;
 $$;
 
-create or replace function airindia.billing_report_revenue_summary(client_id text, report_month text)
+create or replace function public.billing_report_airindia_revenue_summary(client_id text, report_month text)
 returns jsonb
 language plpgsql
 stable
@@ -358,22 +355,22 @@ declare
   total_revenue numeric := 0;
 begin
   select coalesce(sum(trip_cost), 0), coalesce(sum(toll_amount), 0) into trip_amount_t3, toll_amount_t3
-  from airindia.airindia_trip_data_terminal3 where month = report_month;
+  from public.airindia_trip_data_terminal3 where month = report_month;
 
-  select coalesce(sum(mcd), 0) into mcd from airindia.airindia_sundries where month = report_month;
-  select coalesce(sum(amount), 0) into t3_driver_penalty from airindia.airindia_penalty_vehicle_wise where month = report_month and entity = 'T-3';
+  select coalesce(sum(airindia_sundries.mcd), 0) into mcd from public.airindia_sundries where month = report_month;
+  select coalesce(sum(amount), 0) into t3_driver_penalty from public.airindia_penalty_vehicle_wise where month = report_month and entity = 'T-3';
   select coalesce((
-    select employee_penalty_t3 from airindia.airindia_manual_inputs where month = report_month limit 1
+    select employee_penalty_t3 from public.airindia_manual_inputs where month = report_month limit 1
   ), 0) into t3_employee_penalty;
 
   select coalesce((
-    select employee_penalty_aiaa from airindia.airindia_manual_inputs where month = report_month limit 1
+    select employee_penalty_aiaa from public.airindia_manual_inputs where month = report_month limit 1
   ), 0) into aiaa_employee_penalty;
 
   select coalesce(sum(trip_cost), 0), coalesce(sum(toll_amount), 0) into trip_amount_aiaa, toll_amount_aiaa
-  from airindia.airindia_trip_data_aiaa where month = report_month;
+  from public.airindia_trip_data_aiaa where month = report_month;
 
-  select coalesce(sum(amount), 0) into aiaa_driver_penalty from airindia.airindia_penalty_vehicle_wise where month = report_month and entity = 'AIAA';
+  select coalesce(sum(amount), 0) into aiaa_driver_penalty from public.airindia_penalty_vehicle_wise where month = report_month and entity = 'AIAA';
 
   total_of_terminal3 := trip_amount_t3 + toll_amount_t3 + mcd - t3_driver_penalty - t3_employee_penalty;
   total_of_aiaa := trip_amount_aiaa + toll_amount_aiaa - aiaa_driver_penalty - aiaa_employee_penalty;
@@ -405,25 +402,25 @@ begin
 end;
 $$;
 
-create or replace function airindia.billing_report_vehicle_revenue_summary(client_id text, report_month text)
+create or replace function public.billing_report_airindia_vehicle_revenue_summary(client_id text, report_month text)
 returns jsonb
 language sql
 stable
 as $$
   with t3 as (
     select cab_no vehicle_number, max(ownership) ownership, max(cab_type) veh_type, coalesce(sum(trip_cost), 0) amount
-    from airindia.airindia_trip_data_terminal3 where month = report_month group by cab_no
+    from public.airindia_trip_data_terminal3 where month = report_month group by cab_no
   ),
   aiaa as (
     select cab_no vehicle_number, max(ownership) ownership, max(cab_type) veh_type, coalesce(sum(trip_cost), 0) amount
-    from airindia.airindia_trip_data_aiaa where month = report_month group by cab_no
+    from public.airindia_trip_data_aiaa where month = report_month group by cab_no
   ),
   penalties as (
     select vehicle_no vehicle_number,
       coalesce(sum(amount) filter (where entity = 'T-3'), 0) t3_penalty,
       coalesce(sum(amount) filter (where entity = 'AIAA'), 0) aiaa_penalty,
       max(ownership) ownership
-    from airindia.airindia_penalty_vehicle_wise where month = report_month group by vehicle_no
+    from public.airindia_penalty_vehicle_wise where month = report_month group by vehicle_no
   ),
   vehicles as (
     select vehicle_number from t3 union select vehicle_number from aiaa union select vehicle_number from penalties
@@ -456,16 +453,16 @@ as $$
   group by t.grand_total_t3, t.grand_total_aiaa, t.grand_total_overall;
 $$;
 
-create or replace function airindia.billing_report_pnl_summary(client_id text, report_month text)
+create or replace function public.billing_report_airindia_pnl_summary(client_id text, report_month text)
 returns jsonb
 language sql
 stable
 as $$
   with s as (
-    select airindia.billing_report_revenue_summary(client_id, report_month) data
+    select public.billing_report_airindia_revenue_summary(client_id, report_month) data
   ),
   e as (
-    select * from airindia.airindia_expenses where month = report_month limit 1
+    select * from public.airindia_expenses where month = report_month limit 1
   ),
   amounts as (
     select ((select data from s)->>'total_revenue')::numeric total_revenue,
