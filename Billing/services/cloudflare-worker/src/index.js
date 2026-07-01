@@ -389,6 +389,77 @@ function bytesResponse(base64, contentType, filename) {
   });
 }
 
+function csvEscape(value) {
+  if (value === null || value === undefined) return "";
+  const text = String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
+function csvLine(values) {
+  return values.map(csvEscape).join(",");
+}
+
+function humanizeKey(key) {
+  return key.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function tableToCsv(title, rows, summary = []) {
+  const lines = [[title], []];
+  if (rows.length) {
+    const headers = Object.keys(rows[0]);
+    lines.push(headers.map(humanizeKey));
+    for (const row of rows) lines.push(headers.map((key) => row[key]));
+  } else {
+    lines.push(["No rows"]);
+  }
+  if (summary.length) {
+    lines.push([], ["Summary"]);
+    for (const [key, value] of summary) lines.push([humanizeKey(key), value]);
+  }
+  return lines.map(csvLine).join("\r\n");
+}
+
+function reportToCsv(clientId, reportType, report) {
+  const title = `${clientId === "airindia" ? "Air India" : "Agilent"} ${humanizeKey(reportType)} ${report.month || ""}`.trim();
+  if (Array.isArray(report.rows)) {
+    const summary = Object.entries(report).filter(([key, value]) => key !== "rows" && key !== "month" && typeof value !== "object");
+    return tableToCsv(title, report.rows, summary);
+  }
+  if (Array.isArray(report.items)) {
+    const summary = Object.entries(report).filter(([key, value]) => key !== "items" && key !== "month" && typeof value !== "object");
+    return tableToCsv(title, report.items, summary);
+  }
+  if (Array.isArray(report.expenses)) {
+    const summary = Object.entries(report).filter(([key, value]) => key !== "expenses" && key !== "month" && typeof value !== "object");
+    return tableToCsv(title, report.expenses, summary);
+  }
+
+  const expenseRows = Object.values(report).filter((value) => value && typeof value === "object" && "particulars" in value);
+  if (expenseRows.length) {
+    const summary = Object.entries(report).filter(([key, value]) => key !== "month" && !(value && typeof value === "object"));
+    return tableToCsv(title, expenseRows, summary);
+  }
+
+  const rows = Object.entries(report).filter(([key]) => key !== "month").map(([key, value]) => ({
+    particulars: humanizeKey(key),
+    amount: value,
+  }));
+  return tableToCsv(title, rows);
+}
+
+function csvResponse(csv, filename) {
+  return new Response(csv, {
+    headers: {
+      "content-type": "text/csv; charset=utf-8",
+      "content-disposition": `attachment; filename="${filename}"`,
+    },
+  });
+}
+
+function safeFilenamePart(value) {
+  return String(value).replace(/[^a-z0-9._-]+/gi, "_").replace(/^_+|_+$/g, "");
+}
+
 function corsHeaders(request, env) {
   const origin = request.headers.get("origin") || "";
   const allowed = (env.FRONTEND_ORIGIN || "").split(",").map((item) => item.trim()).filter(Boolean);
@@ -398,6 +469,7 @@ function corsHeaders(request, env) {
     "access-control-allow-credentials": "true",
     "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
     "access-control-allow-headers": "content-type,authorization",
+    "access-control-expose-headers": "content-disposition",
   };
 }
 
@@ -696,15 +768,11 @@ async function handleClient(request, env, segments, url) {
     const reportType = segments[3];
     const month = url.searchParams.get("month");
     if (!month) throw statusError(400, "Missing month");
-    const result = await callRpc(env, config.schema, "billing_export_report", {
-      client_id: clientId,
-      report_type: reportType,
-      report_month: month,
-    });
-    if (!result?.content_base64) {
-      throw statusError(502, "Export RPC must return content_base64");
-    }
-    return bytesResponse(result.content_base64, result.content_type, result.file_name);
+    const fnName = REPORT_RPC[clientId]?.[reportType];
+    if (!fnName) throw statusError(404, `Unknown report: ${reportType}`);
+    const report = await callRpc(env, config.schema, fnName, { client_id: clientId, report_month: month });
+    const csv = reportToCsv(clientId, reportType, report);
+    return csvResponse(csv, `${clientId}_${reportType}_${safeFilenamePart(month)}.csv`);
   }
 
   if (request.method === "POST" && area === "upload") {

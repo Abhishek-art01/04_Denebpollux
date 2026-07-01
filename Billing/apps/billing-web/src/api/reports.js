@@ -48,10 +48,13 @@ export async function triggerDownload(reportType, month, filenameHint) {
     responseType: "blob",
   });
   const blob = new Blob([response.data]);
+  const disposition = response.headers["content-disposition"] || "";
+  const filenameMatch = disposition.match(/filename="?([^"]+)"?/i);
+  const filename = filenameMatch?.[1] || `${filenameHint}_${month}.csv`;
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${filenameHint}_${month}.xlsx`;
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
   link.remove();
