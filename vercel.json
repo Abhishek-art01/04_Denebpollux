@@ -1,7 +1,7 @@
 {
-  "buildCommand": "cd Billing/apps/billing-web && npm run build",
-  "installCommand": "cd Billing/apps/billing-web && npm ci",
-  "outputDirectory": "Billing/apps/billing-web/dist",
+  "buildCommand": "cd apps/billing-web && npm run build",
+  "installCommand": "cd apps/billing-web && npm ci",
+  "outputDirectory": "apps/billing-web/dist",
   "framework": "vite",
   "env": {
     "VITE_API_BASE_URL": "/api"

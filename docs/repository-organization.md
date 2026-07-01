@@ -1,65 +1,39 @@
-# Repository Organization Recommendation
+# Repository Organization
 
 ## Current Shape
 
-The repository now has three kinds of code:
+The repository is now organized as a shared monorepo:
 
-- Production backend: `Billing/services/cloudflare-worker`
-- Mature billing frontend: `Billing/apps/billing-web`
-- Standalone business portals:
-  - `Accounts/VenderPayments`
-  - `Accounts/AccountsManagement`
-  - `Accounts/CFO_Panal`
-  - `02_21GS`
-  - `01_Aravali/PCG`
-  - `01_Aravali/Aravali_Dairy`
+- Frontends live in `apps/`
+- Runtime services live in `services/`
+- Database migrations and schema work live in `infra/`
+- Client and platform docs live in `docs/`
+- Legacy artifacts live in `archive/`
 
-The standalone portals are Vite apps and now use the shared Cloudflare Worker
-API plus Supabase/PostgreSQL through `public.app_records`.
+Current active apps:
 
-## Recommended Target Layout
+- `apps/admin-panel`
+- `apps/billing-web`
+- `apps/vendor-payments`
+- `apps/accounts-management`
+- `apps/cfo-panel`
+- `apps/21gs-food-hotel`
+- `apps/pcg-tea-stall`
+- `apps/aravali-dairy`
+- `apps/compliance`
 
-```text
-apps/
-├── billing-web/
-├── accounts-management/
-├── vendor-payments/
-├── cfo-panel/
-├── 21gs-food-hotel/
-├── pcg-tea-stall/
-└── aravali-dairy/
+Current active services:
 
-services/
-└── api-worker/
+- `services/cloudflare-worker`
+- `services/api-gateway`
+- `services/auth`
+- `services/clients/agilent`
+- `services/clients/airindia`
 
-infra/
-└── supabase/
+## Why This Layout
 
-docs/
-├── clients/
-└── operations/
-
-archive/
-└── legacy/
-```
-
-## Why
-
-- Keeps all deployable frontends under one `apps/` namespace.
-- Keeps all runtime APIs under `services/`.
-- Keeps database migrations under one `infra/supabase/` path.
-- Removes mixed naming such as `CFO_Panal`, `VenderPayments`, and numbered
-  root folders from active app paths.
-- Makes future shared UI/API utilities easier to introduce.
-
-## Migration Method
-
-Move one app at a time and keep Vercel project roots updated:
-
-1. Move app folder into `apps/{app-name}`.
-2. Update Vercel project root directory.
-3. Build and redeploy that app.
-4. Keep redirects or README pointers from old folders until users switch.
-
-Avoid moving all apps at once because each Vercel project is currently linked
-to its existing directory.
+- All deployable frontends are in one namespace.
+- All backend services are in one namespace.
+- Database migrations are in one place.
+- Old business labels and numbered folders are no longer part of active paths.
+- The repo now matches the way the apps are actually deployed.

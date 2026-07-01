@@ -92,7 +92,7 @@ Uploads are parsed in the browser and sent to the Worker as JSON:
 
 The Worker maps Excel headers to database columns and inserts into Supabase
 REST tables directly. Report RPC functions are provided in
-`Billing/infra/supabase/001_cloudflare_report_rpcs.sql`.
+`infra/supabase/001_cloudflare_report_rpcs.sql`.
 
 Exports are delegated to:
 

@@ -1,8 +1,8 @@
 # Agilent Billing Dashboard
 
 > Reference doc after the directory reorganization. Active backend path:
-> `Billing/services/clients/agilent`. Active frontend path:
-> `Billing/apps/billing-web`.
+> `services/clients/agilent`. Active frontend path:
+> `apps/billing-web`.
 
 A billing/revenue dashboard for Agilent's cab/vehicle operations. Upload monthly
 Excel sheets (TripData, ChildCab, BackupCab, MaintenanceSecurity, SpotRental,
@@ -69,12 +69,12 @@ backend at `http://localhost:8000` (see `vite.config.js`).
 ### Cloudflare Worker backend
 
 The active production backend is the shared Worker at
-`Billing/services/cloudflare-worker`.
+`services/cloudflare-worker`.
 
 Deploy it with:
 
 ```bash
-cd Billing/services/cloudflare-worker
+cd services/cloudflare-worker
 npm run deploy
 ```
 

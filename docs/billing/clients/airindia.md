@@ -1,8 +1,8 @@
 # Air India Billing Dashboard (Agilent — Air India entity)
 
 > Reference doc after the directory reorganization. Active backend path:
-> `Billing/services/clients/airindia`. Active frontend path:
-> `Billing/apps/billing-web`.
+> `services/clients/airindia`. Active frontend path:
+> `apps/billing-web`.
 
 A standalone billing/revenue dashboard for the Air India side of the
 business (Terminal-3 and AIAA), completely independent from the Agilent
