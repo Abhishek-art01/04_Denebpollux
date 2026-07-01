@@ -436,6 +436,17 @@ button:focus-visible {
   margin-bottom: 18px;
 }
 
+.form-error {
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--ink-700);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .search {
   width: min(420px, 100%);
   position: relative;

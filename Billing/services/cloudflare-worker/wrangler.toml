@@ -5,7 +5,7 @@ workers_dev = true
 preview_urls = true
 
 [vars]
-FRONTEND_ORIGIN = "http://localhost:5173,https://billing-web-ashy.vercel.app"
+FRONTEND_ORIGIN = "http://localhost:5173,http://localhost:5174,http://localhost:5176,http://localhost:5177,http://localhost:5178,http://localhost:5179,https://billing-web-ashy.vercel.app,https://denebpollux-vendor-payments.vercel.app,https://denebpollux-cfo-panel.vercel.app,https://denebpollux-accounts-management.vercel.app,https://denebpollux-21gs-food-hotel.vercel.app,https://denebpollux-pcg-tea-stall.vercel.app,https://denebpollux-aravali-dairy.vercel.app"
 TOKEN_TTL_SECONDS = "43200"
 
 # Set secrets with:

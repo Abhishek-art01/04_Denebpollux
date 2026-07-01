@@ -3,12 +3,12 @@ import ReactDOM from "react-dom/client";
 import "./styles.css";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://denebpollux-billing-api.denebpollux-billing.workers.dev/api";
-const APP_ID = "21gs-food-hotel";
+const APP_ID = "aravali-dairy";
 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: "dashboard" },
   { id: "sales", label: "Sales", icon: "point_of_sale" },
-  { id: "purchases", label: "Purchases", icon: "shopping_cart" },
+  { id: "purchases", label: "Milk Purchase", icon: "local_shipping" },
   { id: "expenses", label: "Expenses", icon: "receipt_long" },
   { id: "reports", label: "Reports", icon: "summarize" },
 ];
@@ -22,11 +22,13 @@ const TYPE_LABELS = {
 const EMPTY_FORM = {
   date: new Date().toISOString().slice(0, 10),
   type: "sale",
-  category: "Food",
-  description: "",
-  vendorCustomer: "",
+  item: "Milk",
+  quantity: 1,
+  unit: "Litre",
+  rate: 62,
+  amount: 62,
+  party: "",
   paymentMode: "Cash",
-  amount: "",
   note: "",
 };
 
@@ -38,27 +40,43 @@ function currency(value) {
   }).format(Number(value) || 0);
 }
 
-function addRecordMeta(record) {
+function normalizeRecord(record) {
+  const quantity = Number(record.quantity) || 0;
+  const rate = Number(record.rate) || 0;
   return {
     id: record.id || crypto.randomUUID(),
     createdAt: record.createdAt || new Date().toISOString(),
     ...record,
-    amount: Number(record.amount) || 0,
+    quantity,
+    rate,
+    amount: Number(record.amount) || quantity * rate,
   };
+}
+
+function MetricCard({ label, value, sublabel }) {
+  return (
+    <article className="metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {sublabel && <small>{sublabel}</small>}
+    </article>
+  );
 }
 
 function fromApiRecord(record) {
   const payload = record.payload || {};
-  return addRecordMeta({
+  return normalizeRecord({
     ...payload,
     id: record.id,
     date: record.record_date,
     type: record.record_type,
-    category: payload.category || record.category || "",
-    description: payload.description || record.title || "",
-    vendorCustomer: payload.vendorCustomer || record.party || "",
-    paymentMode: payload.paymentMode || record.payment_mode || "Cash",
+    item: payload.item || record.title || "",
+    quantity: record.quantity,
+    unit: payload.unit || record.unit || "Litre",
+    rate: record.rate,
     amount: record.amount,
+    party: payload.party || record.party || "",
+    paymentMode: payload.paymentMode || record.payment_mode || "Cash",
     note: payload.note || record.notes || "",
     createdAt: record.created_at,
   });
@@ -77,16 +95,6 @@ async function api(path, options = {}) {
   return data;
 }
 
-function MetricCard({ label, value, sublabel }) {
-  return (
-    <article className="metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      {sublabel && <small>{sublabel}</small>}
-    </article>
-  );
-}
-
 function App() {
   const [records, setRecords] = useState([]);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -103,7 +111,7 @@ function App() {
     const term = query.trim().toLowerCase();
     return records.filter((record) => {
       const sectionMatch = !sectionType || record.type === sectionType;
-      const queryMatch = !term || [record.category, record.description, record.vendorCustomer, record.paymentMode, record.note]
+      const queryMatch = !term || [record.item, record.party, record.paymentMode, record.note, record.unit]
         .some((value) => String(value || "").toLowerCase().includes(term));
       return sectionMatch && queryMatch;
     });
@@ -113,17 +121,25 @@ function App() {
     const sales = records.filter((record) => record.type === "sale").reduce((sum, record) => sum + record.amount, 0);
     const purchases = records.filter((record) => record.type === "purchase").reduce((sum, record) => sum + record.amount, 0);
     const expenses = records.filter((record) => record.type === "expense").reduce((sum, record) => sum + record.amount, 0);
+    const litresPurchased = records
+      .filter((record) => record.type === "purchase" && record.unit.toLowerCase() === "litre")
+      .reduce((sum, record) => sum + record.quantity, 0);
+    const litresSold = records
+      .filter((record) => record.type === "sale" && record.unit.toLowerCase() === "litre")
+      .reduce((sum, record) => sum + record.quantity, 0);
     return {
       sales,
       purchases,
       expenses,
+      litresPurchased,
+      litresSold,
       profit: sales - purchases - expenses,
     };
   }, [records]);
 
-  const categoryTotals = useMemo(() => {
+  const itemTotals = useMemo(() => {
     const grouped = records.reduce((map, record) => {
-      const key = `${TYPE_LABELS[record.type]} / ${record.category}`;
+      const key = `${TYPE_LABELS[record.type]} / ${record.item}`;
       map.set(key, (map.get(key) || 0) + record.amount);
       return map;
     }, new Map());
@@ -148,7 +164,13 @@ function App() {
   }, []);
 
   function setField(field, value) {
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => {
+      const next = { ...current, [field]: value };
+      if (field === "quantity" || field === "rate") {
+        next.amount = (Number(next.quantity) || 0) * (Number(next.rate) || 0);
+      }
+      return next;
+    });
   }
 
   async function submitRecord(event) {
@@ -161,8 +183,8 @@ function App() {
           ...form,
           record_type: form.type,
           record_date: form.date,
-          title: form.description,
-          party: form.vendorCustomer,
+          title: form.item,
+          party: form.party,
           payment_mode: form.paymentMode,
           notes: form.note,
         }),
@@ -185,22 +207,24 @@ function App() {
   }
 
   function exportCsv() {
-    const header = ["Date", "Type", "Category", "Description", "Vendor/Customer", "Payment Mode", "Amount", "Note"];
+    const header = ["Date", "Type", "Item", "Quantity", "Unit", "Rate", "Amount", "Party", "Payment Mode", "Note"];
     const csv = [header, ...records.map((record) => [
       record.date,
       TYPE_LABELS[record.type],
-      record.category,
-      record.description,
-      record.vendorCustomer,
-      record.paymentMode,
+      record.item,
+      record.quantity,
+      record.unit,
+      record.rate,
       record.amount,
+      record.party,
+      record.paymentMode,
       record.note,
     ])].map((row) => row.map((cell) => `"${String(cell || "").replaceAll('"', '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "21gs-food-hotel-records.csv";
+    link.download = "aravali-dairy-records.csv";
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -209,27 +233,23 @@ function App() {
     return (
       <>
         <section className="summary-grid">
-          <MetricCard label="Total Sales" value={currency(totals.sales)} sublabel="Restaurant and room dining" />
-          <MetricCard label="Purchases" value={currency(totals.purchases)} sublabel="Food stock and suppliers" />
-          <MetricCard label="Expenses" value={currency(totals.expenses)} sublabel="Hotel operating costs" />
+          <MetricCard label="Dairy Sales" value={currency(totals.sales)} sublabel={`${totals.litresSold} litres sold`} />
+          <MetricCard label="Milk Purchase" value={currency(totals.purchases)} sublabel={`${totals.litresPurchased} litres purchased`} />
+          <MetricCard label="Expenses" value={currency(totals.expenses)} sublabel="Electricity, packaging, transport" />
           <MetricCard label="Net Profit" value={currency(totals.profit)} sublabel="Sales minus purchase and expense" />
         </section>
 
         <section className="dashboard-grid">
-          <RecordForm
-            form={form}
-            setField={setField}
-            onSubmit={submitRecord}
-          />
+          <RecordForm form={form} setField={setField} onSubmit={submitRecord} />
           <section className="panel">
             <div className="section-heading">
               <div>
                 <span className="eyebrow">Reports</span>
-                <h2>Top categories</h2>
+                <h2>Top items</h2>
               </div>
             </div>
             <div className="category-list">
-              {categoryTotals.map(([label, amount]) => (
+              {itemTotals.map(([label, amount]) => (
                 <div className="category-row" key={label}>
                   <span>{label}</span>
                   <strong>{currency(amount)}</strong>
@@ -247,14 +267,7 @@ function App() {
   function renderRecordsPage(type) {
     return (
       <>
-        <RecordForm
-          form={{ ...form, type }}
-          setField={(field, value) => {
-            if (field === "type") setField(field, value);
-            else setField(field, value);
-          }}
-          onSubmit={submitRecord}
-        />
+        <RecordForm form={{ ...form, type }} setField={setField} onSubmit={submitRecord} />
         <RecordTools query={query} setQuery={setQuery} />
         <RecordTable records={filteredRecords} onDelete={deleteRecord} />
       </>
@@ -273,12 +286,12 @@ function App() {
         <section className="panel">
           <div className="section-heading">
             <div>
-              <span className="eyebrow">Financial Summary</span>
-              <h2>Category breakup</h2>
+              <span className="eyebrow">Dairy Summary</span>
+              <h2>Item breakup</h2>
             </div>
           </div>
           <div className="category-list report-list">
-            {categoryTotals.map(([label, amount]) => (
+            {itemTotals.map(([label, amount]) => (
               <div className="category-row" key={label}>
                 <span>{label}</span>
                 <strong>{currency(amount)}</strong>
@@ -306,12 +319,12 @@ function App() {
             <span className="material-symbols-outlined" aria-hidden="true">menu</span>
           </button>
           <div className="sidebar-identity">
-            <div className="sidebar-avatar">21</div>
-            <div className="sidebar-company">21GS Food Hotel</div>
+            <div className="sidebar-avatar">AD</div>
+            <div className="sidebar-company">Aravali Dairy</div>
           </div>
         </div>
 
-        <nav className="sidebar-nav" aria-label="Food hotel records navigation">
+        <nav className="sidebar-nav" aria-label="Dairy records navigation">
           <div className="sidebar-section-label">Records</div>
           {NAV_ITEMS.map((item) => (
             <button
@@ -320,9 +333,9 @@ function App() {
               type="button"
               onClick={() => {
                 setActiveSection(item.id);
-                if (item.id === "sales") setForm((current) => ({ ...current, type: "sale" }));
-                if (item.id === "purchases") setForm((current) => ({ ...current, type: "purchase" }));
-                if (item.id === "expenses") setForm((current) => ({ ...current, type: "expense" }));
+                if (item.id === "sales") setForm((current) => ({ ...current, type: "sale", item: "Milk", unit: "Litre", rate: 62 }));
+                if (item.id === "purchases") setForm((current) => ({ ...current, type: "purchase", item: "Raw Milk", unit: "Litre", rate: 46 }));
+                if (item.id === "expenses") setForm((current) => ({ ...current, type: "expense", item: "Electricity", unit: "Bill", rate: 1850 }));
               }}
               title={item.label}
             >
@@ -334,8 +347,8 @@ function App() {
 
         <div className="sidebar-footer">
           <div className="sidebar-user">
-            <span className="material-symbols-outlined" aria-hidden="true">restaurant</span>
-            <span>Food Hotel Desk</span>
+            <span className="material-symbols-outlined" aria-hidden="true">water_drop</span>
+            <span>Dairy Desk</span>
           </div>
         </div>
       </aside>
@@ -345,7 +358,7 @@ function App() {
           <div className="navbar-left">
             <div className="navbar-brand">
               <span className="brand-name">{activeNavItem.label}</span>
-              <span className="brand-sub">21GS Food Hotel Records</span>
+              <span className="brand-sub">Aravali Dairy Records</span>
             </div>
           </div>
           <div className="navbar-controls">
@@ -390,16 +403,33 @@ function RecordForm({ form, setField, onSubmit }) {
           </select>
         </label>
         <label>
-          Category
-          <input value={form.category} onChange={(event) => setField("category", event.target.value)} placeholder="Food, Dairy, Utilities" required />
+          Item
+          <input value={form.item} onChange={(event) => setField("item", event.target.value)} placeholder="Milk, Paneer, Curd" required />
         </label>
         <label>
-          Vendor / Customer
-          <input value={form.vendorCustomer} onChange={(event) => setField("vendorCustomer", event.target.value)} placeholder="Supplier or guest" />
+          Party
+          <input value={form.party} onChange={(event) => setField("party", event.target.value)} placeholder="Customer or supplier" />
         </label>
         <label>
-          Description
-          <input value={form.description} onChange={(event) => setField("description", event.target.value)} required />
+          Quantity
+          <input type="number" min="0" value={form.quantity} onChange={(event) => setField("quantity", event.target.value)} required />
+        </label>
+        <label>
+          Unit
+          <select value={form.unit} onChange={(event) => setField("unit", event.target.value)}>
+            <option>Litre</option>
+            <option>Kg</option>
+            <option>Piece</option>
+            <option>Bill</option>
+          </select>
+        </label>
+        <label>
+          Rate
+          <input type="number" min="0" value={form.rate} onChange={(event) => setField("rate", event.target.value)} required />
+        </label>
+        <label>
+          Amount
+          <input type="number" min="0" value={form.amount} onChange={(event) => setField("amount", event.target.value)} required />
         </label>
         <label>
           Payment Mode
@@ -407,13 +437,9 @@ function RecordForm({ form, setField, onSubmit }) {
             <option>Cash</option>
             <option>UPI</option>
             <option>Card</option>
-            <option>Bank Transfer</option>
             <option>Credit</option>
+            <option>Bank Transfer</option>
           </select>
-        </label>
-        <label>
-          Amount
-          <input type="number" min="0" value={form.amount} onChange={(event) => setField("amount", event.target.value)} required />
         </label>
         <label>
           Note
@@ -431,7 +457,7 @@ function RecordTools({ query, setQuery }) {
     <section className="tools-panel">
       <label className="search">
         <span className="material-symbols-outlined" aria-hidden="true">search</span>
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search category, vendor, description" />
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search item, party, unit, note" />
       </label>
     </section>
   );
@@ -452,11 +478,13 @@ function RecordTable({ records, onDelete }) {
             <tr>
               <th>Date</th>
               <th>Type</th>
-              <th>Category</th>
-              <th>Description</th>
-              <th>Vendor / Customer</th>
-              <th>Mode</th>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Unit</th>
+              <th>Rate</th>
               <th>Amount</th>
+              <th>Party</th>
+              <th>Mode</th>
               <th aria-label="Action"></th>
             </tr>
           </thead>
@@ -465,11 +493,13 @@ function RecordTable({ records, onDelete }) {
               <tr key={record.id}>
                 <td>{new Date(record.date).toLocaleDateString("en-IN")}</td>
                 <td><span className={`type-badge type-${record.type}`}>{TYPE_LABELS[record.type]}</span></td>
-                <td>{record.category}</td>
-                <td>{record.description}</td>
-                <td>{record.vendorCustomer || "-"}</td>
-                <td>{record.paymentMode}</td>
+                <td>{record.item}</td>
+                <td>{record.quantity}</td>
+                <td>{record.unit}</td>
+                <td>{currency(record.rate)}</td>
                 <td>{currency(record.amount)}</td>
+                <td>{record.party || "-"}</td>
+                <td>{record.paymentMode}</td>
                 <td>
                   <button className="row-button" type="button" onClick={() => onDelete(record.id)} title="Delete record">
                     <span className="material-symbols-outlined" aria-hidden="true">delete</span>
@@ -479,7 +509,7 @@ function RecordTable({ records, onDelete }) {
             ))}
             {!records.length && (
               <tr>
-                <td className="empty-cell" colSpan="8">No records found.</td>
+                <td className="empty-cell" colSpan="10">No records found.</td>
               </tr>
             )}
           </tbody>

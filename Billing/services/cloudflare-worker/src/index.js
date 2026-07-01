@@ -390,6 +390,37 @@ const VEHICLE_EDITABLE_FIELDS = [
   "client",
 ];
 
+const APP_RECORD_APPS = new Set([
+  "vendor-payments",
+  "accounts-management",
+  "cfo-panel",
+  "21gs-food-hotel",
+  "pcg-tea-stall",
+  "aravali-dairy",
+]);
+
+const APP_RECORD_FIELDS = [
+  "id",
+  "app_id",
+  "record_type",
+  "record_date",
+  "title",
+  "party",
+  "category",
+  "quantity",
+  "unit",
+  "rate",
+  "amount",
+  "deduction",
+  "status",
+  "payment_mode",
+  "reference",
+  "notes",
+  "payload",
+  "created_at",
+  "updated_at",
+];
+
 function json(data, status = 200, headers = {}) {
   return new Response(JSON.stringify(data), {
     status,
@@ -687,6 +718,125 @@ function toText(value) {
   return text || null;
 }
 
+function ensureAppId(appId) {
+  if (!APP_RECORD_APPS.has(appId)) throw statusError(404, `Unknown app: ${appId}`);
+  return appId;
+}
+
+function toNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeAppRecordPayload(appId, payload, existing = {}) {
+  const record = {
+    app_id: appId,
+    record_type: toText(payload.record_type ?? payload.type ?? existing.record_type) || "entry",
+    record_date: toDate(payload.record_date ?? payload.date ?? existing.record_date) || new Date().toISOString().slice(0, 10),
+    title: toText(payload.title ?? payload.description ?? payload.item ?? existing.title),
+    party: toText(payload.party ?? payload.vendor ?? payload.vendorCustomer ?? payload.customer ?? existing.party),
+    category: toText(payload.category ?? payload.zone ?? existing.category),
+    quantity: toNumber(payload.quantity ?? payload.trips ?? existing.quantity),
+    unit: toText(payload.unit ?? existing.unit),
+    rate: toNumber(payload.rate ?? existing.rate),
+    amount: toNumber(payload.amount ?? payload.gross ?? existing.amount),
+    deduction: toNumber(payload.deduction ?? existing.deduction),
+    status: toText(payload.status ?? existing.status) || "draft",
+    payment_mode: toText(payload.payment_mode ?? payload.paymentMode ?? existing.payment_mode),
+    reference: toText(payload.reference ?? payload.paymentRef ?? existing.reference),
+    notes: toText(payload.notes ?? payload.note ?? existing.notes),
+    payload: payload.payload && typeof payload.payload === "object" ? payload.payload : payload,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (!record.amount && record.quantity && record.rate) {
+    record.amount = record.quantity * record.rate;
+  }
+  if (!record.title) {
+    record.title = record.category || record.record_type;
+  }
+  return record;
+}
+
+function appRecordResponse(row) {
+  return {
+    id: row.id,
+    app_id: row.app_id,
+    record_type: row.record_type,
+    record_date: row.record_date,
+    title: row.title,
+    party: row.party,
+    category: row.category,
+    quantity: Number(row.quantity || 0),
+    unit: row.unit,
+    rate: Number(row.rate || 0),
+    amount: Number(row.amount || 0),
+    deduction: Number(row.deduction || 0),
+    status: row.status,
+    payment_mode: row.payment_mode,
+    reference: row.reference,
+    notes: row.notes,
+    payload: row.payload || {},
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+async function listAppRecords(env, appId, url) {
+  ensureAppId(appId);
+  const params = new URLSearchParams({
+    select: APP_RECORD_FIELDS.join(","),
+    app_id: `eq.${appId}`,
+    order: "record_date.desc,created_at.desc",
+  });
+  const type = url.searchParams.get("type");
+  const status = url.searchParams.get("status");
+  if (type) params.set("record_type", `eq.${type}`);
+  if (status) params.set("status", `eq.${status}`);
+  const rows = await supabaseFetch(env, "public", `/app_records?${params.toString()}`);
+  return { records: rows.map(appRecordResponse) };
+}
+
+async function createAppRecord(env, appId, payload) {
+  ensureAppId(appId);
+  const rows = await supabaseFetch(env, "public", "/app_records", {
+    method: "POST",
+    headers: { prefer: "return=representation" },
+    body: JSON.stringify([normalizeAppRecordPayload(appId, payload)]),
+  });
+  return appRecordResponse(rows[0]);
+}
+
+async function updateAppRecord(env, appId, id, payload) {
+  ensureAppId(appId);
+  const existingRows = await supabaseFetch(
+    env,
+    "public",
+    `/app_records?id=eq.${encodeURIComponent(id)}&app_id=eq.${appId}&limit=1`,
+  );
+  if (!existingRows[0]) throw statusError(404, "Record not found");
+  const rows = await supabaseFetch(
+    env,
+    "public",
+    `/app_records?id=eq.${encodeURIComponent(id)}&app_id=eq.${appId}`,
+    {
+      method: "PATCH",
+      headers: { prefer: "return=representation" },
+      body: JSON.stringify(normalizeAppRecordPayload(appId, payload, existingRows[0])),
+    },
+  );
+  return appRecordResponse(rows[0]);
+}
+
+async function deleteAppRecord(env, appId, id) {
+  ensureAppId(appId);
+  await supabaseFetch(env, "public", `/app_records?id=eq.${encodeURIComponent(id)}&app_id=eq.${appId}`, {
+    method: "DELETE",
+    headers: { prefer: "return=minimal" },
+  });
+  return { deleted: true };
+}
+
 function deriveVehicleId(vehicleNumber) {
   const text = toText(vehicleNumber);
   if (!text) throw statusError(400, "Vehicle number is required");
@@ -895,6 +1045,29 @@ async function handleVehicles(request, env, segments) {
   throw statusError(404, "Vehicle route not found");
 }
 
+async function handleAppRecords(request, env, segments, url) {
+  const appId = segments[1];
+  const area = segments[2];
+  const id = decodeURIComponent(segments[3] || "");
+
+  if (area !== "records") throw statusError(404, "App route not found");
+
+  if (request.method === "GET" && !id) {
+    return json(await listAppRecords(env, appId, url));
+  }
+  if (request.method === "POST" && !id) {
+    return json(await createAppRecord(env, appId, await request.json()), 201);
+  }
+  if (request.method === "PATCH" && id) {
+    return json(await updateAppRecord(env, appId, id, await request.json()));
+  }
+  if (request.method === "DELETE" && id) {
+    return json(await deleteAppRecord(env, appId, id));
+  }
+
+  throw statusError(404, "App records route not found");
+}
+
 async function route(request, env) {
   const url = new URL(request.url);
   const segments = url.pathname.replace(/^\/api\/?/, "").replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
@@ -905,6 +1078,7 @@ async function route(request, env) {
   if (segments[0] === "auth") return handleAuth(request, env, segments);
   if (segments[0] === "clients") return handleClient(request, env, segments, url);
   if (segments[0] === "vehicles") return handleVehicles(request, env, segments);
+  if (segments[0] === "apps") return handleAppRecords(request, env, segments, url);
   throw statusError(404, "Route not found");
 }
 

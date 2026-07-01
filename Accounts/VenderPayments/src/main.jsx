@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom/client";
 import "./styles.css";
 
-const STORAGE_KEY = "denebpollux_vendor_payments";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://denebpollux-billing-api.denebpollux-billing.workers.dev/api";
+const APP_ID = "vendor-payments";
 
 const RATE_RULES = [
   { id: "agilent-ertiga-green", client: "Agilent", model: "Ertiga", zone: "Green Zone", range: "Standard", rate: 984 },
@@ -36,16 +37,36 @@ function currency(value) {
   }).format(value || 0);
 }
 
-function loadEntries() {
-  try {
-    return JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
-
 function getRule(ruleId) {
   return RATE_RULES.find((rule) => rule.id === ruleId) || RATE_RULES[0];
+}
+
+function fromApiRecord(record) {
+  const payload = record.payload || {};
+  return {
+    ...payload,
+    id: record.id,
+    vendor: payload.vendor || record.party || "",
+    vehicleNumber: payload.vehicleNumber || record.reference || "",
+    ruleId: payload.ruleId || RATE_RULES[0].id,
+    quantity: Number(record.quantity || payload.quantity || 0),
+    deduction: Number(record.deduction || payload.deduction || 0),
+    note: payload.note || record.notes || "",
+    createdAt: record.created_at,
+  };
+}
+
+async function api(path, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      "content-type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail || `Request failed with ${response.status}`);
+  return data;
 }
 
 function calculate(entry) {
@@ -75,10 +96,12 @@ function EmptyClientView({ label }) {
 
 function App() {
   const [entry, setEntry] = useState(EMPTY_ENTRY);
-  const [entries, setEntries] = useState(loadEntries);
+  const [entries, setEntries] = useState([]);
   const [query, setQuery] = useState("");
   const [activeSection, setActiveSection] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const activeTotal = calculate(entry);
 
@@ -100,12 +123,24 @@ function App() {
     setEntry((current) => ({ ...current, [field]: value }));
   }
 
-  function saveEntries(nextEntries) {
-    setEntries(nextEntries);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextEntries));
+  async function loadEntries() {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await api(`/apps/${APP_ID}/records`);
+      setEntries((data.records || []).map(fromApiRecord));
+    } catch (err) {
+      setError(err.message || "Unable to load payments.");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function submitEntry(event) {
+  useEffect(() => {
+    loadEntries();
+  }, []);
+
+  async function submitEntry(event) {
     event.preventDefault();
     const trimmedVendor = entry.vendor.trim();
     const trimmedVehicle = entry.vehicleNumber.trim();
@@ -113,19 +148,46 @@ function App() {
 
     const nextEntry = {
       ...entry,
-      id: crypto.randomUUID(),
       vendor: trimmedVendor,
       vehicleNumber: trimmedVehicle.toUpperCase(),
       quantity: Number(entry.quantity) || 0,
       deduction: Number(entry.deduction) || 0,
-      createdAt: new Date().toISOString(),
     };
-    saveEntries([nextEntry, ...entries]);
-    setEntry(EMPTY_ENTRY);
+    const totals = calculate(nextEntry);
+    setError("");
+    try {
+      const saved = await api(`/apps/${APP_ID}/records`, {
+        method: "POST",
+        body: JSON.stringify({
+          ...nextEntry,
+          record_type: "vendor-payment",
+          record_date: new Date().toISOString().slice(0, 10),
+          title: `${totals.rule.client} ${totals.rule.model}`,
+          party: nextEntry.vendor,
+          category: `${totals.rule.zone} / ${totals.rule.range}`,
+          quantity: nextEntry.quantity,
+          rate: totals.rule.rate,
+          amount: totals.gross,
+          deduction: nextEntry.deduction,
+          reference: nextEntry.vehicleNumber,
+          notes: nextEntry.note,
+        }),
+      });
+      setEntries((current) => [fromApiRecord(saved), ...current]);
+      setEntry(EMPTY_ENTRY);
+    } catch (err) {
+      setError(err.message || "Unable to save payment.");
+    }
   }
 
-  function removeEntry(id) {
-    saveEntries(entries.filter((item) => item.id !== id));
+  async function removeEntry(id) {
+    setError("");
+    try {
+      await api(`/apps/${APP_ID}/records/${encodeURIComponent(id)}`, { method: "DELETE" });
+      setEntries((current) => current.filter((item) => item.id !== id));
+    } catch (err) {
+      setError(err.message || "Unable to delete payment.");
+    }
   }
 
   function exportCsv() {
@@ -438,6 +500,8 @@ function App() {
         </header>
 
         <section className="main-content">
+          {error && <div className="form-error">{error}</div>}
+          {loading && <div className="form-error">Loading payments...</div>}
           {activeSection === "dashboard" && renderDashboard()}
           {activeSection === "agilent" && renderAgilent()}
           {activeSection === "airindia" && <EmptyClientView label="Air India" />}

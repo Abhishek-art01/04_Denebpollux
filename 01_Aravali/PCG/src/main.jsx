@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom/client";
 import "./styles.css";
 
-const STORAGE_KEY = "pcg_tea_stall_records";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://denebpollux-billing-api.denebpollux-billing.workers.dev/api";
+const APP_ID = "pcg-tea-stall";
 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: "dashboard" },
@@ -30,14 +31,6 @@ const EMPTY_FORM = {
   note: "",
 };
 
-const SAMPLE_RECORDS = [
-  { date: "2026-07-01", type: "sale", item: "Tea", quantity: 85, rate: 10, party: "Counter", paymentMode: "Cash", note: "Morning and evening" },
-  { date: "2026-07-01", type: "sale", item: "Coffee", quantity: 18, rate: 20, party: "Counter", paymentMode: "UPI", note: "" },
-  { date: "2026-07-01", type: "purchase", item: "Milk", quantity: 12, rate: 58, party: "Dairy Supplier", paymentMode: "Cash", note: "" },
-  { date: "2026-07-01", type: "purchase", item: "Tea Leaf", quantity: 2, rate: 420, party: "Grocery", paymentMode: "UPI", note: "Kg" },
-  { date: "2026-07-01", type: "expense", item: "Gas", quantity: 1, rate: 1150, party: "Gas Agency", paymentMode: "Cash", note: "Cylinder" },
-];
-
 function currency(value) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -59,14 +52,6 @@ function normalizeRecord(record) {
   };
 }
 
-function loadRecords() {
-  try {
-    return JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "null") || SAMPLE_RECORDS.map(normalizeRecord);
-  } catch {
-    return SAMPLE_RECORDS.map(normalizeRecord);
-  }
-}
-
 function MetricCard({ label, value, sublabel }) {
   return (
     <article className="metric">
@@ -77,12 +62,45 @@ function MetricCard({ label, value, sublabel }) {
   );
 }
 
+function fromApiRecord(record) {
+  const payload = record.payload || {};
+  return normalizeRecord({
+    ...payload,
+    id: record.id,
+    date: record.record_date,
+    type: record.record_type,
+    item: payload.item || record.title || "",
+    quantity: record.quantity,
+    rate: record.rate,
+    amount: record.amount,
+    party: payload.party || record.party || "",
+    paymentMode: payload.paymentMode || record.payment_mode || "Cash",
+    note: payload.note || record.notes || "",
+    createdAt: record.created_at,
+  });
+}
+
+async function api(path, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      "content-type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail || `Request failed with ${response.status}`);
+  return data;
+}
+
 function App() {
-  const [records, setRecords] = useState(loadRecords);
+  const [records, setRecords] = useState([]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [activeSection, setActiveSection] = useState("dashboard");
   const [query, setQuery] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const activeNavItem = NAV_ITEMS.find((item) => item.id === activeSection) || NAV_ITEMS[0];
 
@@ -120,10 +138,22 @@ function App() {
     return Array.from(grouped.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8);
   }, [records]);
 
-  function saveRecords(nextRecords) {
-    setRecords(nextRecords);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextRecords));
+  async function loadRecords() {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await api(`/apps/${APP_ID}/records`);
+      setRecords((data.records || []).map(fromApiRecord));
+    } catch (err) {
+      setError(err.message || "Unable to load records.");
+    } finally {
+      setLoading(false);
+    }
   }
+
+  useEffect(() => {
+    loadRecords();
+  }, []);
 
   function setField(field, value) {
     setForm((current) => {
@@ -135,18 +165,37 @@ function App() {
     });
   }
 
-  function submitRecord(event) {
+  async function submitRecord(event) {
     event.preventDefault();
-    saveRecords([normalizeRecord(form), ...records]);
-    setForm({ ...EMPTY_FORM, type: form.type, date: form.date });
+    setError("");
+    try {
+      const saved = await api(`/apps/${APP_ID}/records`, {
+        method: "POST",
+        body: JSON.stringify({
+          ...form,
+          record_type: form.type,
+          record_date: form.date,
+          title: form.item,
+          party: form.party,
+          payment_mode: form.paymentMode,
+          notes: form.note,
+        }),
+      });
+      setRecords((current) => [fromApiRecord(saved), ...current]);
+      setForm({ ...EMPTY_FORM, type: form.type, date: form.date });
+    } catch (err) {
+      setError(err.message || "Unable to save record.");
+    }
   }
 
-  function deleteRecord(id) {
-    saveRecords(records.filter((record) => record.id !== id));
-  }
-
-  function loadSampleData() {
-    saveRecords(SAMPLE_RECORDS.map(normalizeRecord));
+  async function deleteRecord(id) {
+    setError("");
+    try {
+      await api(`/apps/${APP_ID}/records/${encodeURIComponent(id)}`, { method: "DELETE" });
+      setRecords((current) => current.filter((record) => record.id !== id));
+    } catch (err) {
+      setError(err.message || "Unable to delete record.");
+    }
   }
 
   function exportCsv() {
@@ -182,7 +231,7 @@ function App() {
         </section>
 
         <section className="dashboard-grid">
-          <RecordForm form={form} setField={setField} onSubmit={submitRecord} onLoadSample={loadSampleData} />
+          <RecordForm form={form} setField={setField} onSubmit={submitRecord} />
           <section className="panel">
             <div className="section-heading">
               <div>
@@ -209,7 +258,7 @@ function App() {
   function renderRecordsPage(type) {
     return (
       <>
-        <RecordForm form={{ ...form, type }} setField={setField} onSubmit={submitRecord} onLoadSample={loadSampleData} />
+        <RecordForm form={{ ...form, type }} setField={setField} onSubmit={submitRecord} />
         <RecordTools query={query} setQuery={setQuery} />
         <RecordTable records={filteredRecords} onDelete={deleteRecord} />
       </>
@@ -312,6 +361,8 @@ function App() {
         </header>
 
         <section className="main-content">
+          {error && <div className="form-error">{error}</div>}
+          {loading && <div className="form-error">Loading records...</div>}
           {renderSection()}
         </section>
       </section>
@@ -319,7 +370,7 @@ function App() {
   );
 }
 
-function RecordForm({ form, setField, onSubmit, onLoadSample }) {
+function RecordForm({ form, setField, onSubmit }) {
   return (
     <form className="panel record-form" onSubmit={onSubmit}>
       <div className="section-heading">
@@ -327,7 +378,6 @@ function RecordForm({ form, setField, onSubmit, onLoadSample }) {
           <span className="eyebrow">New Entry</span>
           <h2>Sale, purchase, or expense</h2>
         </div>
-        <button className="secondary-button" type="button" onClick={onLoadSample}>Sample data</button>
       </div>
 
       <div className="form-grid">

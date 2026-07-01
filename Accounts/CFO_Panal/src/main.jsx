@@ -1,6 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom/client";
 import "./styles.css";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://denebpollux-billing-api.denebpollux-billing.workers.dev/api";
+const SOURCE_APPS = ["accounts-management", "vendor-payments", "21gs-food-hotel", "pcg-tea-stall", "aravali-dairy"];
 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: "dashboard" },
@@ -12,40 +15,29 @@ const NAV_ITEMS = [
   { id: "reports", label: "Reports", icon: "summarize" },
 ];
 
-const APPROVALS = [
-  { id: "AP-1048", title: "Agilent vendor payout batch", owner: "Accounts", amount: 284500, status: "Pending", age: "2h" },
-  { id: "AP-1047", title: "Air India toll reimbursement", owner: "Operations", amount: 76320, status: "Review", age: "5h" },
-  { id: "AP-1046", title: "Fleet maintenance advance", owner: "Fleet", amount: 120000, status: "Pending", age: "1d" },
-  { id: "AP-1045", title: "Technology subscription renewal", owner: "Admin", amount: 48500, status: "Approved", age: "1d" },
-];
-
-const CLIENTS = [
-  { name: "Agilent", receivable: 1284000, payable: 462000, margin: 36, status: "On Track" },
-  { name: "Air India", receivable: 2460000, payable: 936000, margin: 31, status: "Reconcile" },
-  { name: "Tata", receivable: 820000, payable: 312000, margin: 28, status: "On Track" },
-  { name: "Others", receivable: 540000, payable: 185000, margin: 22, status: "Watch" },
-];
-
-const CASHFLOW = [
-  { label: "Opening Balance", value: 3240000 },
-  { label: "Expected Inflow", value: 5180000 },
-  { label: "Scheduled Outflow", value: -2720000 },
-  { label: "Projected Closing", value: 5700000 },
-];
-
-const BUDGETS = [
-  { department: "Fleet Operations", allocated: 1800000, used: 1215000 },
-  { department: "Vendor Payments", allocated: 2400000, used: 1684000 },
-  { department: "Compliance", allocated: 650000, used: 318000 },
-  { department: "Administration", allocated: 420000, used: 294000 },
-];
-
 function currency(value) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(value || 0);
+}
+
+async function api(path) {
+  const response = await fetch(`${API_BASE_URL}${path}`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail || `Request failed with ${response.status}`);
+  return data;
+}
+
+function appLabel(appId) {
+  return {
+    "accounts-management": "Accounts Management",
+    "vendor-payments": "Vendor Payments",
+    "21gs-food-hotel": "21GS Food Hotel",
+    "pcg-tea-stall": "PCG Tea Stall",
+    "aravali-dairy": "Aravali Dairy",
+  }[appId] || appId;
 }
 
 function StatusBadge({ status }) {
@@ -79,26 +71,90 @@ function App() {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [query, setQuery] = useState("");
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const activeNavItem = NAV_ITEMS.find((item) => item.id === activeSection) || NAV_ITEMS[0];
 
-  const totalReceivable = CLIENTS.reduce((total, client) => total + client.receivable, 0);
-  const totalPayable = CLIENTS.reduce((total, client) => total + client.payable, 0);
-  const pendingApprovalValue = APPROVALS
+  async function loadRecords() {
+    setLoading(true);
+    setError("");
+    try {
+      const results = await Promise.all(SOURCE_APPS.map(async (appId) => {
+        const data = await api(`/apps/${appId}/records`);
+        return (data.records || []).map((record) => ({ ...record, app_id: appId }));
+      }));
+      setRecords(results.flat());
+    } catch (err) {
+      setError(err.message || "Unable to load CFO data.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadRecords();
+  }, []);
+
+  const approvals = useMemo(() => records
+    .filter((record) => ["Vendor Passed", "Accounts Ready", "draft"].includes(record.status))
+    .map((record) => ({
+      id: String(record.id).slice(0, 8),
+      title: record.title || record.payload?.description || appLabel(record.app_id),
+      owner: appLabel(record.app_id),
+      amount: Number(record.amount || 0) - Number(record.deduction || 0),
+      status: record.status === "Vendor Passed" ? "Pending" : record.status,
+      age: record.record_date || "",
+    })), [records]);
+
+  const clients = useMemo(() => {
+    const grouped = new Map();
+    for (const record of records) {
+      const payload = record.payload || {};
+      const name = payload.client || appLabel(record.app_id);
+      const current = grouped.get(name) || { name, receivable: 0, payable: 0, margin: 0, status: "On Track" };
+      const amount = Number(record.amount || 0);
+      const type = record.record_type || payload.type;
+      if (["sale", "income", "revenue"].includes(type)) current.receivable += amount;
+      else current.payable += amount;
+      grouped.set(name, current);
+    }
+    return Array.from(grouped.values()).map((client) => ({
+      ...client,
+      margin: client.receivable ? Math.round(((client.receivable - client.payable) / client.receivable) * 100) : 0,
+      status: client.payable > client.receivable ? "Watch" : "On Track",
+    }));
+  }, [records]);
+
+  const budgets = useMemo(() => SOURCE_APPS.map((appId) => {
+    const used = records.filter((record) => record.app_id === appId).reduce((sum, record) => sum + Number(record.amount || 0), 0);
+    return { department: appLabel(appId), allocated: Math.max(used * 1.25, 1), used };
+  }), [records]);
+
+  const totalReceivable = clients.reduce((total, client) => total + client.receivable, 0);
+  const totalPayable = clients.reduce((total, client) => total + client.payable, 0);
+  const pendingApprovalValue = approvals
     .filter((item) => item.status !== "Approved")
     .reduce((total, item) => total + item.amount, 0);
+  const cashflow = [
+    { label: "Opening Balance", value: 0 },
+    { label: "Expected Inflow", value: totalReceivable },
+    { label: "Scheduled Outflow", value: -totalPayable },
+    { label: "Projected Closing", value: totalReceivable - totalPayable },
+  ];
 
   const filteredApprovals = useMemo(() => {
     const term = query.trim().toLowerCase();
-    if (!term) return APPROVALS;
-    return APPROVALS.filter((item) => (
+    if (!term) return approvals;
+    return approvals.filter((item) => (
       [item.id, item.title, item.owner, item.status].some((value) => value.toLowerCase().includes(term))
     ));
-  }, [query]);
+  }, [approvals, query]);
 
   function exportCsv() {
     const header = ["Type", "Name", "Receivable", "Payable", "Margin", "Status"];
-    const rows = CLIENTS.map((client) => ["Client", client.name, client.receivable, client.payable, `${client.margin}%`, client.status]);
+    const rows = clients.map((client) => ["Client", client.name, client.receivable, client.payable, `${client.margin}%`, client.status]);
     const csv = [header, ...rows]
       .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
       .join("\n");
@@ -117,8 +173,8 @@ function App() {
         <section className="summary-grid" aria-label="CFO summary">
           <MetricCard label="Receivables" value={currency(totalReceivable)} sublabel="Across active clients" />
           <MetricCard label="Payables" value={currency(totalPayable)} sublabel="Vendor and operating dues" />
-          <MetricCard label="Pending Approval" value={currency(pendingApprovalValue)} sublabel="3 open requests" />
-          <MetricCard label="Projected Cash" value={currency(CASHFLOW[3].value)} sublabel="After scheduled outflow" />
+          <MetricCard label="Pending Approval" value={currency(pendingApprovalValue)} sublabel={`${approvals.length} open requests`} />
+          <MetricCard label="Projected Cash" value={currency(cashflow[3].value)} sublabel="After scheduled outflow" />
         </section>
 
         <section className="dashboard-grid">
@@ -130,7 +186,7 @@ function App() {
               </div>
             </div>
             <div className="cash-list">
-              {CASHFLOW.map((item) => (
+              {cashflow.map((item) => (
                 <div className="cash-row" key={item.label}>
                   <span>{item.label}</span>
                   <strong className={item.value < 0 ? "negative" : ""}>{currency(item.value)}</strong>
@@ -147,7 +203,7 @@ function App() {
               </div>
             </div>
             <div className="approval-list compact">
-              {APPROVALS.slice(0, 3).map((item) => (
+              {approvals.slice(0, 3).map((item) => (
                 <article className="approval-card" key={item.id}>
                   <div>
                     <strong>{item.title}</strong>
@@ -217,7 +273,7 @@ function App() {
           </div>
         </div>
         <div className="cash-grid">
-          {CASHFLOW.map((item) => (
+          {cashflow.map((item) => (
             <MetricCard
               key={item.label}
               label={item.label}
@@ -240,7 +296,7 @@ function App() {
           </div>
         </div>
         <div className="budget-list">
-          {BUDGETS.map((budget) => {
+          {budgets.map((budget) => {
             const percent = Math.round((budget.used / budget.allocated) * 100);
             return (
               <article className="budget-card" key={budget.department}>
@@ -270,7 +326,7 @@ function App() {
           </div>
         </div>
         <div className="client-grid">
-          {CLIENTS.map((client) => (
+          {clients.map((client) => (
             <article className="client-card" key={client.name}>
               <div>
                 <strong>{client.name}</strong>
@@ -352,6 +408,8 @@ function App() {
         </header>
 
         <section className="main-content">
+          {error && <div className="form-error">{error}</div>}
+          {loading && <div className="form-error">Loading finance data...</div>}
           {renderSection()}
         </section>
       </section>

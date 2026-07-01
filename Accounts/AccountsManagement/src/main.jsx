@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom/client";
 import "./styles.css";
 
-const STORAGE_KEY = "denebpollux_accounts_management";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://denebpollux-billing-api.denebpollux-billing.workers.dev/api";
+const APP_ID = "accounts-management";
 
 const RATE_RULES = [
   { client: "Agilent", model: "Ertiga", zone: "Green Zone", range: "Standard", rate: 984 },
@@ -20,27 +21,12 @@ const NAV_ITEMS = [
   { id: "payments", label: "Payments", icon: "receipt_long" },
 ];
 
-const SAMPLE_ROWS = [
-  { client: "Agilent", vendor: "Metro Cabs", vehicle: "DL01AB1234", model: "Ertiga", zone: "Green Zone", range: "Standard", trips: 12 },
-  { client: "Agilent", vendor: "North Fleet", vehicle: "DL01AB4588", model: "Ertiga", zone: "Yellow Zone", range: "Standard", trips: 9 },
-  { client: "Agilent", vendor: "Metro Cabs", vehicle: "DL01AB6767", model: "Ertiga", zone: "Red Zone", range: "Far Range", trips: 6 },
-  { client: "Agilent", vendor: "City Travel", vehicle: "DL01AB9911", model: "Ertiga", zone: "Red Zone", range: "Near Range", trips: 8 },
-];
-
 function currency(value) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(value || 0);
-}
-
-function loadRows() {
-  try {
-    return JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "null") || SAMPLE_ROWS.map(enrichRow);
-  } catch {
-    return SAMPLE_ROWS.map(enrichRow);
-  }
 }
 
 function findRate(row) {
@@ -72,6 +58,31 @@ function enrichRow(row, index = crypto.randomUUID()) {
     uploadedAt: row.uploadedAt || new Date().toISOString(),
     paymentRef: row.paymentRef || "",
   };
+}
+
+function fromApiRecord(record) {
+  const payload = record.payload || {};
+  return enrichRow({
+    ...payload,
+    id: record.id,
+    deduction: record.deduction,
+    status: record.status,
+    paymentRef: record.reference || payload.paymentRef || "",
+    uploadedAt: record.created_at,
+  });
+}
+
+async function api(path, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      "content-type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail || `Request failed with ${response.status}`);
+  return data;
 }
 
 function parseCsv(text) {
@@ -108,10 +119,12 @@ function MetricCard({ label, value, sublabel }) {
 }
 
 function App() {
-  const [rows, setRows] = useState(loadRows);
+  const [rows, setRows] = useState([]);
   const [activeSection, setActiveSection] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [deductions, setDeductions] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const activeNavItem = NAV_ITEMS.find((item) => item.id === activeSection) || NAV_ITEMS[0];
 
@@ -128,40 +141,95 @@ function App() {
     };
   }, [rows]);
 
-  function saveRows(nextRows) {
-    setRows(nextRows);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextRows));
+  async function loadRows() {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await api(`/apps/${APP_ID}/records`);
+      setRows((data.records || []).map(fromApiRecord));
+    } catch (err) {
+      setError(err.message || "Unable to load rows.");
+    } finally {
+      setLoading(false);
+    }
   }
+
+  useEffect(() => {
+    loadRows();
+  }, []);
 
   async function handleUpload(event) {
     const file = event.target.files?.[0];
     if (!file) return;
     const text = await file.text();
     const parsedRows = parseCsv(text);
-    saveRows(parsedRows.length ? parsedRows : rows);
+    setError("");
+    try {
+      const savedRows = await Promise.all(parsedRows.map((row) => saveRow(row)));
+      setRows((current) => [...savedRows, ...current]);
+    } catch (err) {
+      setError(err.message || "Unable to upload MIS.");
+    }
     setActiveSection("mis");
   }
 
-  function loadSampleMis() {
-    saveRows(SAMPLE_ROWS.map(enrichRow));
-    setActiveSection("mis");
+  async function saveRow(row) {
+    const saved = await api(`/apps/${APP_ID}/records`, {
+      method: "POST",
+      body: JSON.stringify(toApiPayload(row)),
+    });
+    return fromApiRecord(saved);
+  }
+
+  function toApiPayload(row) {
+    return {
+      ...row,
+      record_type: "mis-payment",
+      record_date: new Date().toISOString().slice(0, 10),
+      title: `${row.client} ${row.vehicle}`,
+      party: row.vendor,
+      category: `${row.zone} / ${row.range}`,
+      quantity: row.trips,
+      rate: row.rate,
+      amount: row.gross,
+      deduction: row.deduction,
+      status: row.status,
+      reference: row.paymentRef || row.vehicle,
+      notes: row.note || "",
+    };
+  }
+
+  async function updateRow(id, patch) {
+    const current = rows.find((row) => row.id === id);
+    if (!current) return;
+    setError("");
+    try {
+      const saved = await api(`/apps/${APP_ID}/records/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify(toApiPayload({ ...current, ...patch })),
+      });
+      const nextRow = fromApiRecord(saved);
+      setRows((items) => items.map((row) => row.id === id ? nextRow : row));
+    } catch (err) {
+      setError(err.message || "Unable to update row.");
+    }
   }
 
   function updateStatus(id, status) {
-    saveRows(rows.map((row) => row.id === id ? { ...row, status } : row));
+    updateRow(id, { status });
   }
 
   function applyDeduction(id) {
     const deduction = Number(deductions[id]) || 0;
-    saveRows(rows.map((row) => row.id === id ? { ...row, deduction, status: "Accounts Ready" } : row));
+    updateRow(id, { deduction, status: "Accounts Ready" });
   }
 
   function generatePayment(id) {
-    saveRows(rows.map((row) => row.id === id ? {
-      ...row,
+    const row = rows.find((item) => item.id === id);
+    updateRow(id, {
       status: "Payment Generated",
-      paymentRef: row.paymentRef || `PAY-${Date.now().toString().slice(-6)}`,
-    } : row));
+      paymentRef: row?.paymentRef || `PAY-${Date.now().toString().slice(-6)}`,
+    });
   }
 
   function exportCsv() {
@@ -241,7 +309,6 @@ function App() {
               Upload CSV
               <input type="file" accept=".csv,text/csv" onChange={handleUpload} />
             </label>
-            <button className="secondary-button" type="button" onClick={loadSampleMis}>Load sample MIS</button>
           </div>
         </section>
         {renderTable(rows, "mis")}
@@ -407,6 +474,8 @@ function App() {
         </header>
 
         <section className="main-content">
+          {error && <div className="form-error">{error}</div>}
+          {loading && <div className="form-error">Loading records...</div>}
           {renderSection()}
         </section>
       </section>
