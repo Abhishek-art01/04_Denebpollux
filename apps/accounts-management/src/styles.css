@@ -18,6 +18,63 @@
   --navbar-height: 68px;
 }
 
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--surface-0);
+}
+
+.entry-panel {
+  width: min(420px, 100%);
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  box-shadow: var(--shadow);
+}
+
+.entry-panel h1 {
+  margin: 8px 0 20px;
+  font-size: 28px;
+}
+
+.entry-form {
+  display: grid;
+  gap: 14px;
+}
+
+.entry-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink-700);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.error-banner {
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #9c3b30;
+  color: var(--surface-1);
+  font-size: 13px;
+}
+
+.auth-sign-out {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 40;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--ink-700);
+  padding: 9px 12px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
 * {
   box-sizing: border-box;
 }

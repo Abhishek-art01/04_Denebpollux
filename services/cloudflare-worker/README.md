@@ -1,7 +1,7 @@
 # Cloudflare Worker Billing API
 
-This backend is the Cloudflare-compatible replacement for the Python gateway,
-auth service, and simple CRUD endpoints. It keeps the frontend API shape:
+This backend is the Cloudflare-compatible replacement for the Python gateway
+and simple CRUD endpoints. It keeps the frontend API shape:
 
 ```text
 /api/auth/*
@@ -20,7 +20,7 @@ PostgreSQL socket connections do not map cleanly to Workers Free.
 
 This Worker uses:
 
-- Web Crypto for signed session tokens.
+- Supabase Auth bearer tokens for protected routes.
 - Supabase REST for table reads and upserts.
 - Supabase REST for JSON row upload ingestion.
 - Supabase RPC for report calculations.
@@ -33,17 +33,9 @@ convert Excel files to JSON before sending them to the Worker.
 ```bash
 wrangler secret put SUPABASE_URL
 wrangler secret put SUPABASE_SERVICE_ROLE_KEY
-wrangler secret put TOKEN_SECRET
-wrangler secret put AUTH_USERS
 ```
 
-`AUTH_USERS` uses the existing format:
-
-```text
-admin:strong-password:Admin
-```
-
-Multiple users can be comma-separated.
+Frontend apps must be built with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 
 ## Supabase Assumptions
 

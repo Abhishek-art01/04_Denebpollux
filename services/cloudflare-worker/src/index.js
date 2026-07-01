@@ -533,64 +533,39 @@ function withCors(response, request, env) {
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
-function parseUsers(rawUsers = "admin:admin123:Admin") {
-  const users = new Map();
-  for (const rawUser of rawUsers.split(",")) {
-    const [username, password, name] = rawUser.trim().split(":");
-    if (username && password && name) users.set(username, { password, name });
-  }
-  return users;
-}
-
-function base64UrlEncode(bytes) {
-  const binary = String.fromCharCode(...bytes);
-  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
-}
-
-function base64UrlDecode(value) {
-  const padded = value.replaceAll("-", "+").replaceAll("_", "/") + "=".repeat((4 - (value.length % 4)) % 4);
-  const binary = atob(padded);
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
-}
-
 function base64Decode(value) {
   const binary = atob(value);
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
-}
-
-async function hmac(payload, secret) {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload));
-  return base64UrlEncode(new Uint8Array(signature));
-}
-
-async function createToken(username, name, env) {
-  const now = Math.floor(Date.now() / 1000);
-  const ttl = Number(env.TOKEN_TTL_SECONDS || 43200);
-  const payload = base64UrlEncode(new TextEncoder().encode(JSON.stringify({ sub: username, name, iat: now, exp: now + ttl })));
-  return `${payload}.${await hmac(payload, env.TOKEN_SECRET)}`;
-}
-
-async function decodeToken(token, env) {
-  const [payload, signature] = token.split(".");
-  if (!payload || !signature) throw statusError(401, "Invalid token");
-  const expected = await hmac(payload, env.TOKEN_SECRET);
-  if (signature !== expected) throw statusError(401, "Invalid token");
-  const data = JSON.parse(new TextDecoder().decode(base64UrlDecode(payload)));
-  if (Number(data.exp || 0) < Math.floor(Date.now() / 1000)) throw statusError(401, "Token expired");
-  return data;
 }
 
 function bearerToken(request) {
   const header = request.headers.get("authorization") || "";
   if (!header.toLowerCase().startsWith("bearer ")) throw statusError(401, "Missing bearer token");
   return header.slice(7);
+}
+
+async function verifySupabaseSession(token, env) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw statusError(500, "Supabase auth is not configured");
+  }
+
+  const response = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+    headers: {
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      authorization: `Bearer ${token}`,
+      accept: "application/json",
+    },
+  });
+
+  if (!response.ok) throw statusError(401, "Invalid Supabase session");
+
+  const user = await response.json();
+  return {
+    sub: user.id,
+    email: user.email,
+    name: user.user_metadata?.name || user.email || user.id,
+    role: user.app_metadata?.role || user.user_metadata?.role || "authenticated",
+  };
 }
 
 function statusError(status, message, extra = {}) {
@@ -601,7 +576,7 @@ function statusError(status, message, extra = {}) {
 }
 
 async function requireSession(request, env) {
-  return decodeToken(bearerToken(request), env);
+  return verifySupabaseSession(bearerToken(request), env);
 }
 
 function supabaseHeaders(env, schema) {
@@ -937,26 +912,15 @@ function normalizeUploadRows(spec, rawRows) {
 }
 
 async function handleAuth(request, env, segments) {
-  if (request.method === "POST" && segments[1] === "login") {
-    const { username, password } = await request.json();
-    const user = parseUsers(env.AUTH_USERS).get(username);
-    if (!user || user.password !== password) throw statusError(401, "Invalid username or password");
-    return json({
-      access_token: await createToken(username, user.name, env),
-      token_type: "bearer",
-      user: { username, name: user.name },
-    });
-  }
-
   if (request.method === "GET" && segments[1] === "me") {
     const payload = await requireSession(request, env);
-    return json({ username: payload.sub, name: payload.name });
+    return json({ id: payload.sub, email: payload.email, name: payload.name, role: payload.role });
   }
 
   if (request.method === "POST" && segments[1] === "verify") {
     const { token } = await request.json();
-    const payload = await decodeToken(token, env);
-    return json({ active: true, username: payload.sub, name: payload.name });
+    const payload = await verifySupabaseSession(token, env);
+    return json({ active: true, id: payload.sub, email: payload.email, name: payload.name, role: payload.role });
   }
 
   throw statusError(404, "Auth route not found");
@@ -1046,6 +1010,7 @@ async function handleVehicles(request, env, segments) {
 }
 
 async function handleAppRecords(request, env, segments, url) {
+  await requireSession(request, env);
   const appId = segments[1];
   const area = segments[2];
   const id = decodeURIComponent(segments[3] || "");

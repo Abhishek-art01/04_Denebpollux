@@ -4,8 +4,10 @@ import axios from "axios";
 import "./styles.css";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
-const TOKEN_KEY = "complience_auth_token";
-const USER_KEY = "complience_user";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const TOKEN_KEY = "compliance.supabase.access_token";
+const USER_KEY = "compliance.supabase.user";
 
 const client = axios.create({
   baseURL: API_BASE_URL,
@@ -52,8 +54,23 @@ function formatDate(value) {
   return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
 }
 
+async function signInWithSupabase(email, password) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error("Supabase environment is not configured.");
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error_description || data.msg || "Invalid email or password.");
+  return data;
+}
+
 function Login({ onLogin }) {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -63,13 +80,13 @@ function Login({ onLogin }) {
     setLoading(true);
     setError("");
     try {
-      const { data } = await client.post("/auth/login", { username: username.trim(), password });
+      const data = await signInWithSupabase(email.trim(), password);
       window.localStorage.setItem(TOKEN_KEY, data.access_token);
       window.localStorage.setItem(USER_KEY, JSON.stringify(data.user));
       onLogin(data.user);
     } catch (err) {
       console.error(err);
-      setError(err.response?.status === 401 ? "Invalid username or password." : "Unable to sign in.");
+      setError(err.message || "Unable to sign in.");
     } finally {
       setLoading(false);
     }
@@ -85,8 +102,8 @@ function Login({ onLogin }) {
         </div>
         <form onSubmit={handleSubmit} className="login-form">
           <label>
-            Username
-            <input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" required />
+            Email
+            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
           </label>
           <label>
             Password
@@ -304,7 +321,7 @@ function App() {
         <div className="sidebar-footer">
           <div className="sidebar-user">
             <span className="material-symbols-outlined" aria-hidden="true">account_circle</span>
-            <span className="sidebar-text">{user.name || user.username}</span>
+            <span className="sidebar-text">{user.user_metadata?.name || user.email}</span>
           </div>
           <button className="sidebar-link" type="button" onClick={logout} title="Logout">
             <span className="material-symbols-outlined" aria-hidden="true">logout</span>
@@ -336,7 +353,7 @@ function App() {
           <div className="navbar-controls">
             <div className="user-chip">
               <span className="material-symbols-outlined" aria-hidden="true">account_circle</span>
-              {user.name || user.username}
+              {user.user_metadata?.name || user.email}
             </div>
             <button className="icon-button" type="button" onClick={loadVehicles} title="Refresh vehicles">
               <span className="material-symbols-outlined" aria-hidden="true">refresh</span>

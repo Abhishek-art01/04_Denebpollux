@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 
 export default function LoginPage() {
   const { isAuthenticated, login } = useAuth();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,14 +18,10 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await login(username.trim(), password);
+      await login(email.trim(), password);
     } catch (err) {
       console.error(err);
-      if (err.response?.status === 401) {
-        setError("Invalid username or password.");
-      } else {
-        setError("Servers are still waking up. Please try again in a minute.");
-      }
+      setError(err.message || "Invalid email or password.");
     } finally {
       setLoading(false);
     }
@@ -36,16 +32,17 @@ export default function LoginPage() {
       <section className="login-panel">
         <div className="login-brand">
           <span className="brand-name">Billing Web App</span>
-          <span className="brand-sub">API Gateway protected</span>
+          <span className="brand-sub">Supabase protected</span>
         </div>
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="form-field">
-            <label htmlFor="username">Username</label>
+            <label htmlFor="email">Email</label>
             <input
-              id="username"
-              autoComplete="username"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
+              id="email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
               required
             />
           </div>
@@ -62,7 +59,7 @@ export default function LoginPage() {
           </div>
           {error && <p className="form-error">{error}</p>}
           <button className="btn-primary" type="submit" disabled={loading}>
-            {loading ? "Waking servers..." : "Sign in"}
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
       </section>

@@ -26,7 +26,6 @@ Current active services:
 
 - `services/cloudflare-worker`
 - `services/api-gateway`
-- `services/auth`
 - `services/clients/agilent`
 - `services/clients/airindia`
 

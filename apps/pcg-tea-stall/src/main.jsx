@@ -3,7 +3,11 @@ import ReactDOM from "react-dom/client";
 import "./styles.css";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://denebpollux-billing-api.denebpollux-billing.workers.dev/api";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const APP_ID = "pcg-tea-stall";
+const AUTH_TOKEN_KEY = `${APP_ID}.supabase.access_token`;
+const AUTH_USER_KEY = `${APP_ID}.supabase.user`;
 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: "dashboard" },
@@ -81,16 +85,99 @@ function fromApiRecord(record) {
 }
 
 async function api(path, options = {}) {
+  const token = window.localStorage.getItem(AUTH_TOKEN_KEY);
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
       "content-type": "application/json",
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
   });
   const data = await response.json().catch(() => ({}));
+  if (response.status === 401) {
+    window.localStorage.removeItem(AUTH_TOKEN_KEY);
+    window.localStorage.removeItem(AUTH_USER_KEY);
+    window.location.reload();
+  }
   if (!response.ok) throw new Error(data.detail || `Request failed with ${response.status}`);
   return data;
+}
+
+function readStoredUser() {
+  try {
+    return JSON.parse(window.localStorage.getItem(AUTH_USER_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+async function signInWithSupabase(email, password) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error("Supabase environment is not configured.");
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error_description || data.msg || "Invalid email or password.");
+  window.localStorage.setItem(AUTH_TOKEN_KEY, data.access_token);
+  window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
+  return data.user;
+}
+
+function LoginGate({ children }) {
+  const [user, setUser] = useState(readStoredUser);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      setUser(await signInWithSupabase(email.trim(), password));
+    } catch (err) {
+      setError(err.message || "Unable to sign in.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function logout() {
+    window.localStorage.removeItem(AUTH_TOKEN_KEY);
+    window.localStorage.removeItem(AUTH_USER_KEY);
+    setUser(null);
+  }
+
+  if (!user) {
+    return (
+      <main className="app-shell">
+        <section className="entry-panel">
+          <span className="eyebrow">Denebpollux</span>
+          <h1>PCG Tea Stall</h1>
+          <form className="entry-form" onSubmit={handleSubmit}>
+            <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
+            <label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
+            {error && <div className="error-banner">{error}</div>}
+            <button className="primary-button" type="submit" disabled={loading}>{loading ? "Signing in..." : "Sign in"}</button>
+          </form>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <>
+      {children}
+      <button className="auth-sign-out" type="button" onClick={logout}>Sign out</button>
+    </>
+  );
 }
 
 function App() {
@@ -498,4 +585,8 @@ function RecordTable({ records, onDelete }) {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <LoginGate>
+    <App />
+  </LoginGate>
+);

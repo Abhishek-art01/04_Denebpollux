@@ -10,7 +10,8 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:5173"
     frontend_origin_regex: str | None = None
-    auth_backend_url: str = "http://localhost:8010"
+    supabase_url: str = ""
+    supabase_service_role_key: str = ""
     client_backends: str = "agilent=http://localhost:8000,airindia=http://localhost:8001"
     request_timeout_seconds: float = 120
 
@@ -98,22 +99,29 @@ async def wake_backend(name: str, base_url: str) -> dict[str, str | int]:
     return {"name": name, "status": "waking", "attempts": len(WAKE_RETRY_DELAYS_SECONDS), "error": last_error}
 
 
-async def verify_token(authorization: Annotated[str | None, Header()] = None) -> None:
+async def verify_token(authorization: Annotated[str | None, Header()] = None) -> dict:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
+    if not settings.supabase_url or not settings.supabase_service_role_key:
+        raise HTTPException(status_code=500, detail="Supabase auth is not configured")
 
     token = authorization.split(" ", 1)[1]
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.post(
-                f"{settings.auth_backend_url.rstrip('/')}/api/auth/verify",
-                json={"token": token},
+            response = await client.get(
+                f"{settings.supabase_url.rstrip('/')}/auth/v1/user",
+                headers={
+                    "apikey": settings.supabase_service_role_key,
+                    "authorization": f"Bearer {token}",
+                    "accept": "application/json",
+                },
             )
     except httpx.HTTPError as exc:
-        raise HTTPException(status_code=502, detail="Auth service unavailable") from exc
+        raise HTTPException(status_code=502, detail="Supabase auth unavailable") from exc
 
     if response.status_code != 200:
         raise HTTPException(status_code=401, detail="Invalid session")
+    return response.json()
 
 
 async def proxy(request: Request, target_url: str, preserve_authorization: bool = False) -> Response:
@@ -136,13 +144,10 @@ async def proxy(request: Request, target_url: str, preserve_authorization: bool 
 
 @app.get("/api/wake")
 async def wake_services(
-    target: str = Query("all", pattern="^(all|auth|client)$"),
+    target: str = Query("all", pattern="^(all|client)$"),
     client_id: str | None = None,
 ):
     checks = []
-    if target in {"all", "auth"}:
-        checks.append(wake_backend("auth", settings.auth_backend_url))
-
     if target in {"all", "client"}:
         if client_id:
             backend_url = CLIENT_BACKENDS.get(client_id)
@@ -159,10 +164,30 @@ async def wake_services(
     return {"status": "ok", "services": results}
 
 
-@app.api_route("/api/auth/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
-async def auth_proxy(path: str, request: Request):
-    target_url = f"{settings.auth_backend_url.rstrip('/')}/api/auth/{path}"
-    return await proxy(request, target_url, preserve_authorization=True)
+@app.get("/api/auth/me")
+async def auth_me(authorization: Annotated[str | None, Header()] = None):
+    user = await verify_token(authorization)
+    return {
+        "id": user.get("id"),
+        "email": user.get("email"),
+        "name": user.get("user_metadata", {}).get("name") or user.get("email"),
+        "role": user.get("app_metadata", {}).get("role") or user.get("user_metadata", {}).get("role") or "authenticated",
+    }
+
+
+@app.post("/api/auth/verify")
+async def auth_verify(payload: dict):
+    token = payload.get("token")
+    if not token:
+        raise HTTPException(status_code=400, detail="Missing token")
+    user = await verify_token(f"Bearer {token}")
+    return {
+        "active": True,
+        "id": user.get("id"),
+        "email": user.get("email"),
+        "name": user.get("user_metadata", {}).get("name") or user.get("email"),
+        "role": user.get("app_metadata", {}).get("role") or user.get("user_metadata", {}).get("role") or "authenticated",
+    }
 
 
 @app.api_route("/api/clients/{client_id}/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
@@ -183,6 +208,6 @@ async def client_proxy(
 def health_check():
     return {
         "status": "ok",
-        "auth_backend": settings.auth_backend_url,
+        "auth": "supabase",
         "client_backends": sorted(CLIENT_BACKENDS),
     }

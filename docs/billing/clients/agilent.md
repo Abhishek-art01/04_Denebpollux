@@ -82,8 +82,6 @@ Required Worker secrets:
 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `TOKEN_SECRET`
-- `AUTH_USERS`
 
 ### Vercel frontend
 
@@ -92,6 +90,8 @@ Vercel reads `vercel.json` and builds the Vite app from the frontend app directo
 Set this Vercel environment variable:
 
 - `VITE_API_BASE_URL` = `/api`
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
 
 After changing `VITE_API_BASE_URL`, trigger a new Vercel deploy because Vite
 injects environment variables at build time.

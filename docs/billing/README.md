@@ -22,7 +22,6 @@ apps/
 services/
 ├── cloudflare-worker/            # production API backend
 ├── api-gateway/                  # public API entrypoint
-├── auth/                         # login/session service
 └── clients/
     ├── agilent/                  # Agilent billing backend
     └── airindia/                 # Air India billing backend
@@ -50,10 +49,7 @@ If port `5173` is busy:
 BILLING_WEB_PORT=5175 docker compose up --build
 ```
 
-Default local login:
-
-- Username: `admin`
-- Password: `admin123`
+Login uses Supabase email/password auth.
 
 ## Host Backend On Cloudflare
 
@@ -74,14 +70,17 @@ Required Worker secrets:
 
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `TOKEN_SECRET`
-- `AUTH_USERS`
 
 The deployed Vercel frontend should call its same-origin API proxy:
 
 ```text
 VITE_API_BASE_URL=/api
 ```
+
+Frontend deployments also need:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
 
 Vercel rewrites `/api/*` to the Cloudflare Worker defined in
 `apps/billing-web/vercel.json`.

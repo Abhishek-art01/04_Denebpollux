@@ -18,7 +18,6 @@ docker compose up --build
 
 - Billing web app: http://localhost:5173
 - API gateway: http://localhost:8080/api/health
-- Auth backend: http://localhost:8010/api/health
 
 If port `5173` is busy:
 
@@ -26,13 +25,8 @@ If port `5173` is busy:
 BILLING_WEB_PORT=5175 docker compose up --build
 ```
 
-Default local login:
-
-- Username: `admin`
-- Password: `admin123`
-
-Set `TOKEN_SECRET` and `AUTH_USERS` in your environment for real deployments.
-`AUTH_USERS` is a comma-separated list using `username:password:Display Name`.
+Login uses Supabase email/password auth. Set `SUPABASE_URL`,
+`SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` in your local env.
 
 ## Current Layout
 
@@ -51,7 +45,6 @@ apps/
 services/
 ├── cloudflare-worker/
 ├── api-gateway/
-├── auth/
 └── clients/
     ├── agilent/
     └── airindia/
@@ -71,11 +64,11 @@ archive/
 
 The frontend calls only the API base URL:
 
-- Login: `/api/auth/login`
+- Session check: `/api/auth/me`
 - Client APIs: `/api/clients/{client}/...`
 
 In production, Vercel rewrites `/api/*` to the Cloudflare Worker. The Worker
-handles auth, client APIs, uploads, and report RPC calls.
+validates Supabase Auth sessions, handles client APIs, uploads, and report RPC calls.
 
 ## Cloudflare Worker Backend
 

@@ -58,7 +58,7 @@ export default function Sidebar({ collapsed, onToggle }) {
       <div className="sidebar-footer">
         <div className="sidebar-user">
           <span className="material-symbols-outlined" aria-hidden="true">account_circle</span>
-          <span className="sidebar-text">{user?.name || user?.username}</span>
+          <span className="sidebar-text">{user?.user_metadata?.name || user?.email}</span>
         </div>
         <button className="sidebar-link" type="button" onClick={logout} title="Logout">
           <span className="material-symbols-outlined" aria-hidden="true">logout</span>
